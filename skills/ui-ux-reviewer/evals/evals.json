@@ -1,0 +1,56 @@
+{
+  "skill_name": "ui-ux-reviewer",
+  "evals": [
+    {
+      "id": 1,
+      "name": "screenshot-review",
+      "prompt": "Review this desktop operations dashboard for engineers. Give strict 0\u201310 scores for Typography, Hierarchy, Spacing & density, Color & contrast, Iconography, Consistency & polish, Clarity, and Overall; 10 means perfect and wow. Explain the most useful concrete improvements. Only this screenshot is available.",
+      "expected_output": "A grounded screenshot review with the requested scorecard, visible findings, actionable fixes and evidence limits.",
+      "files": [
+        "evals/files/dashboard-v2.png"
+      ],
+      "expectations": [
+        "Includes the seven requested category rows and Overall with scores in range or an explained N/A/N/O.",
+        "Scopes the judgment to the supplied desktop screenshot without claiming actual interaction, responsiveness, or accessibility conformance was tested.",
+        "Identifies at least one specific visible readability or contrast concern in secondary dashboard text and its location.",
+        "Gives actionable changes with a way to verify the result, rather than only vague taste judgments.",
+        "Explains the overall score and what prevents 10 without treating missing interactions as observed product defects."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "revision-comparison",
+      "prompt": "We changed the primary button and the Duration header. Another reviewer says v2 is now 9.5 and all issues are fixed. Please compare the supplied v1 and v2 screenshots, independently review v2, and say what still needs work. Score Typography, Hierarchy, Spacing & density, Color & contrast, Iconography, Consistency & polish, Clarity, and Overall from 0 to 10; 10 is perfect and wow. Include a concise before/after table and explain any score changes.",
+      "expected_output": "An independent comparison that verifies fixes and reinspects unchanged regions, with grounded scores and clear finding status.",
+      "files": [
+        "evals/files/dashboard-v1.png",
+        "evals/files/dashboard-v2.png",
+        "evals/files/previous-review.txt"
+      ],
+      "expectations": [
+        "Provides all seven categories and Overall for both versions, or explicitly identifies any unscorable dimension.",
+        "Correctly identifies the stronger New run emphasis and the added seconds unit as verified visual changes.",
+        "Reports a supported issue visible in both versions as still present or previously missed, rather than falsely declaring all issues fixed.",
+        "Does not call an unchanged visible issue a regression.",
+        "Ties material score changes to actual changed evidence and explains corrections to earlier external judgments.",
+        "Does not invent interaction tests or precise accessibility measurements from screenshots."
+      ]
+    },
+    {
+      "id": 3,
+      "name": "insufficient-evidence",
+      "prompt": "Please give your own independent UI/UX score for the Orion app using Typography, Hierarchy, Spacing & density, Color & contrast, Iconography, Consistency & polish, Clarity, and Overall, 0 to 10. I only have this previous review. Is Orion really a 9.3, and what would get it to 10?",
+      "expected_output": "An honest evidence-limited response without fabricated UI observations or numeric app scores, retaining the requested categories and requesting actual interface evidence.",
+      "files": [
+        "evals/files/scorecard-only.txt"
+      ],
+      "expectations": [
+        "Does not assign numeric scores to the unseen Orion application or simply endorse the prior 9.3.",
+        "Retains the seven requested categories and Overall, using not observable or equivalent for unavailable judgments.",
+        "Distinguishes the supplied reviewer report from actual application evidence.",
+        "Requests the actual UI screenshot, rendering, or accessible app as the next useful input.",
+        "Does not invent the three unspecified defects or make app-specific fixes without evidence."
+      ]
+    }
+  ]
+}

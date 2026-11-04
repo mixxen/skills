@@ -1,0 +1,11 @@
+Reviewer report for the Orion application.
+Typography: 9.3
+Hierarchy: 9.5
+Spacing & density: 9.4
+Color & contrast: 9.4
+Iconography: 9.3
+Consistency & polish: 9.2
+Clarity: 9.3
+Overall: 9.3
+The reviewer said the app was better than two reference products and had three visible defects, without describing them.
+No actual app screenshot, rendering, recording, or source code is supplied.

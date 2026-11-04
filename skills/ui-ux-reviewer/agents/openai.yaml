@@ -1,0 +1,14 @@
+interface:
+  display_name: UI/UX Reviewer
+  short_description: Strict UI/UX reviews with evidence and 0–10 scores
+  default_prompt: Use $ui-ux-reviewer to review this interface, score the seven categories
+    from 0 to 10, and prioritize concrete improvements.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true

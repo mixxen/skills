@@ -1,0 +1,8 @@
+Previous review of dashboard v1
+Overall: 9.0/10
+Findings:
+P1: Export and New run have the same treatment. Give New run primary emphasis.
+P2: Duration values need a unit in the header.
+No other issues recorded.
+
+A separate reviewer of v2 reported 9.5/10 and said all issues were fixed.
