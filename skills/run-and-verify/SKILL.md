@@ -2,7 +2,7 @@
 name: run-and-verify
 description: Start the app, drive the feature that just changed through the project's own CLI or driver, check it behaves as a user would expect, debug with real developer tools when it doesn't, and leave reviewable evidence (commands, output, screenshots or video). Uses a feature map, a list of the app's features in the user's own words, so "the panel in the left sidebar" points at something concrete. Use this whenever code that changes user-visible behaviour is finished, when the user says verify, check it works, try it, test it in the app, show me, or before opening a PR, even if tests already pass.
 metadata:
-  version: "0.6"
+  version: "0.7"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -22,7 +22,7 @@ Look for, in this order:
 
 If there's no driver, use what exists (Playwright, curl for HTTP, the app's own CLI) and say in the report that a project driver is missing. If there's no feature map, create the entries you need for this change using `references/feature-map-template.md` and offer to save them; next time the map exists.
 
-If the app can't start here (dependencies missing, no network, needs credentials), say so plainly. Don't report "verified" for something you didn't run. Say what you checked instead (static reading, unit tests) and give the exact steps a person can follow.
+If the app can't start here (dependencies missing, no network, needs credentials), say so plainly. Don't report "verified" for something you didn't run. Partial runs still count: if a test or script needs only the language runtime and repo files, run it, on a copy if you must not touch the checkout, and say exactly what ran. Say what you checked instead (static reading, unit tests) and give the exact steps a person can follow.
 
 ## 1. Decide what "working" means
 
@@ -33,6 +33,8 @@ Name the features the change touches, using the feature map's names. Then write 
 - one nearby feature that shares code or state and could have broken.
 
 Writing these first stops you from declaring success on whatever you happen to see.
+
+If the change has no UI (a library API, a validation rule, a build step), the "user" is whoever calls it. Checks are what that caller sees: return values, error messages, CLI output, a generated file. Drive it through the smallest real caller, such as the package's own test, a script or a consumer smoke test.
 
 ## 2. Run it
 

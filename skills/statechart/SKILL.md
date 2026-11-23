@@ -2,7 +2,7 @@
 name: statechart
 description: Draw a feature's state machine from the user's point of view, read from the code that was actually written, as a Mermaid state diagram, then compare it with what was asked for and list missing transitions, dead ends and unreachable states. Use this to check whether an agent understood the intent behind a UI flow, when reviewing a feature with several states (forms, uploads, wizards, auth, sync, players, onboarding), when the user asks for a state diagram, statechart or flow of a feature, or alongside screenshots and videos from run-and-verify.
 metadata:
-  version: "0.3"
+  version: "0.4"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -18,6 +18,8 @@ Read the feature's components, hooks, reducers or stores. A state is something t
 
 Ignore implementation detail such as memoisation or loading for a fraction of a second that never shows.
 
+If parts of the feature change independently (a panel's open or closed state, what a status line says, which tab is selected), draw them as parallel regions inside one composite state, separated by `--`, instead of multiplying every combination into its own state.
+
 ## 2. Find the events and transitions
 
 For each state, list what can move the user out of it:
@@ -31,7 +33,7 @@ Note guards ("only if the form is valid") on the arrow. For each transition, rec
 
 Use Mermaid `stateDiagram-v2`, with user-facing names. Use nested states only when they make the diagram easier to read.
 
-Every arrow must come from a line of code you can cite. Don't draw arrows the intent asks for but the code lacks, and don't invent arrows to illustrate a problem (such as a self-loop labelled "no exit"); show problems by marking states instead. A reviewer should be able to trust that the diagram is what was built.
+Every arrow must come from a line of code you can cite. When one handler connects every state in a group to every other (any tab to any tab), draw one representative arrow, and say in its table row that the same handler covers the rest, citing it. Don't draw arrows the intent asks for but the code lacks, and don't invent arrows to illustrate a problem (such as a self-loop labelled "no exit"); show problems by marking states instead. A reviewer should be able to trust that the diagram is what was built.
 
 Mark problems in the diagram itself, so they are visible without reading the table: give dead-end and unreachable states a `classDef` (for example `classDef gap stroke:#c00,stroke-width:3px`) and a `note right of` saying what's wrong. Include arrows for system events that land somewhere surprising, such as a response arriving after the user cancelled.
 

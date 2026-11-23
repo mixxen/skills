@@ -4,7 +4,7 @@ Common, maintained tools for each kind of control in `SKILL.md`. Prefer what the
 
 | Language | Ban an API or import | Enforce a boundary | Write a custom rule |
 |---|---|---|---|
-| JavaScript / TypeScript | ESLint `no-restricted-imports`, `no-restricted-syntax`, `no-restricted-globals`, scoped with `files` and `ignores` in the config | `eslint-plugin-boundaries`, `dependency-cruiser` | ESLint custom rule with `meta.messages` (and an optional fixer) |
+| JavaScript / TypeScript | ESLint `no-restricted-imports`, `no-restricted-syntax`, `no-restricted-globals`, scoped with `files` and `ignores` in a flat config, or `overrides` with `files` and `excludedFiles` in a legacy `.eslintrc` (ESLint 8 and earlier, which have no bulk suppressions) | `eslint-plugin-boundaries`, `dependency-cruiser` | ESLint custom rule with `meta.messages` (and an optional fixer) |
 | Python | Ruff `banned-api` (flake8-tidy-imports, rule TID251) | `import-linter` contracts: `forbidden`, `layers`, `independence` | Ruff doesn't load plugins; use Semgrep, or a small AST-based test |
 | Go | golangci-lint `forbidigo`, `depguard` | `depguard`; `internal/` packages | `go/analysis` analyzer |
 | Rust | Clippy `disallowed_methods`, `disallowed_types` in `clippy.toml` | crate boundaries; `pub(crate)` visibility | Dylint |

@@ -2,7 +2,7 @@
 name: harvest-corrections
 description: Mine recent PR review comments, reverts and changes to agent rules files for corrections that keep recurring, group them, and rank which to turn into automatic checks next, along with a summary of what human review still catches. Use this when the user asks what keeps coming up in code review, what to lint or automate next, why review is a bottleneck, which agent mistakes repeat, or wants a weekly or monthly review of corrections. Hand the top items to encode-correction.
 metadata:
-  version: "0.1"
+  version: "0.2"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -12,20 +12,21 @@ The ideal is to turn every correction into a check the moment it happens. In pra
 
 ## Inputs
 
-Default window: the last 30 days, or since the previous harvest report if the user keeps them. Sources, most useful first:
+Default window: the last 30 days, or since the previous harvest report if the user keeps them. If corrections cluster in a longer stretch, such as the current release or milestone, widen the window to that and say so; a fixed 30 days can cut a cluster in half. Sources, most useful first:
 
 1. **PR review comments**, both inline and in the PR conversation.
 2. **Reverts**: commits that undo earlier work, and the reason given.
 3. **Changes to agent rules files** such as AGENTS.md, CLAUDE.md and rules directories. Each added "don't" line is a correction someone wrote as prose instead of code.
-4. **Agent session logs**, only if the user points you to them. Don't go looking through personal logs.
+4. **Commit messages.** Teams that review before merging often record findings in the fix commit itself ("review round 2: …", "addresses R1", "regression test fails on 1a2b3c4"). Where review comments aren't available, these are the main source. One commit body can list several findings; split them into separate corrections.
+5. **Agent session logs**, only if the user points you to them. Don't go looking through personal logs.
 
-For GitHub repositories, `scripts/collect_corrections.py` gathers sources 1 to 3 as JSON lines. Run it from inside the repository:
+`scripts/collect_corrections.py` gathers sources 1 to 4 as JSON lines. Run it from inside the repository:
 
 ```
 python scripts/collect_corrections.py --since 2026-10-22 --out corrections.jsonl
 ```
 
-It needs `git` and a signed-in `gh` CLI, and it skips bot accounts. For other hosts, pass `--no-github` to collect the git sources only, and fetch review comments with that host's CLI or API.
+The review comments need a signed-in `gh` CLI; everything else needs only `git`. It skips bot accounts and merge commits. For other hosts, pass `--no-github` and fetch review comments with that host's CLI or API if you can. Commit messages are matched against review-style patterns by default (review, regression, corrective, "fails on <sha>"); pass `--commit-grep` (repeatable, extended regex) to use the project's own words, such as its finding IDs.
 
 ## 1. Turn comments into corrections
 
@@ -39,7 +40,9 @@ If an existing check should have caught something and didn't, keep that item and
 
 ## 2. Group and count
 
-Cluster corrections that describe the same rule, even when they're worded differently. For each cluster, record how many times it appears, in how many PRs, and two or three example links.
+Cluster corrections that describe the same rule, even when they're worded differently. Group by the underlying mistake, not by feature: "cleanup error replaces the original error" in five different modules is one cluster. For each cluster, record how many times it appears, in how many PRs (or commits, when there are no PR links), and two or three example links.
+
+If a cluster stopped recurring after a shared helper or API landed, check whether anything stops new code from reimplementing it locally. An unfenced helper is the next correction waiting to happen; suggest fencing it (see `encode-correction`).
 
 ## 3. Rank
 
@@ -57,7 +60,7 @@ Show the top five by default:
 
 ```
 ## Corrections harvest: [date range]
-Sources: [n] review comments, [n] reverts, [n] rules-file changes
+Sources: [n] review comments, [n] commits with review findings, [n] reverts, [n] rules-file changes
 
 ### Encode next
 1. [wrong → right]: [count] times in [n] PRs (e.g. [links]). Suggested control: [type].

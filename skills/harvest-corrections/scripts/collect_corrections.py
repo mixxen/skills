@@ -6,10 +6,12 @@ Sources:
   pr_comment      PR conversation comments (GitHub, via gh)
   revert          commits that revert earlier commits (git)
   rules_change    lines added to agent rules files (git)
+  commit_finding  non-merge commits whose message records a review finding or
+                  a regression fix (git; patterns set with --commit-grep)
 
 Run from inside the repository. The GitHub sources need an authenticated gh
 CLI; pass --no-github to collect only the git sources (for GitLab, Bitbucket,
-or offline use). Bot accounts are skipped.
+or offline use). Bot accounts and merge commits are skipped.
 
 Example:
   python collect_corrections.py --since 2026-10-22 --out corrections.jsonl
@@ -17,6 +19,7 @@ Example:
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -32,6 +35,16 @@ RULE_PATHSPECS = [
     ".github/copilot-instructions.md",
     ".windsurfrules",
 ]
+
+# Extended regexes (matched case-insensitively) for commit messages that record a
+# review finding or a regression fix. --commit-grep replaces them.
+DEFAULT_COMMIT_PATTERNS = [
+    r"review",
+    r"regression",
+    r"corrective",
+    r"fails on [0-9a-f]{7,40}",
+]
+FAILS_ON = re.compile(r"\b(?:fails|failed|failing) on ([0-9a-f]{7,40})\b", re.IGNORECASE)
 
 FIELD = "\x1f"
 RECORD = "\x1e"
@@ -115,6 +128,37 @@ def reverts(since_iso):
     return items
 
 
+def commit_findings(since_iso, patterns):
+    """Non-merge commits whose message matches a pattern; reverts are left to reverts()."""
+    cmd = ["git", "log", f"--since={since_iso}", "--no-merges", "-i", "-E"]
+    cmd += [f"--grep={pattern}" for pattern in patterns]
+    cmd.append(f"--format=%H{FIELD}%an{FIELD}%aI{FIELD}%s{FIELD}%b{RECORD}")
+    out = run(cmd)
+    compiled = [re.compile(pattern, re.IGNORECASE) for pattern in patterns]
+    items = []
+    for record in out.split(RECORD):
+        record = record.strip("\n")
+        if not record:
+            continue
+        sha, author, date, subject, body = (record.split(FIELD) + [""] * 5)[:5]
+        if re.match(r"revert", subject, re.IGNORECASE) or "This reverts commit" in body:
+            continue
+        message = f"{subject}\n{body}"
+        items.append(
+            {
+                "kind": "commit_finding",
+                "author": author,
+                "created_at": date,
+                "commit": sha,
+                "subject": subject,
+                "body": body.strip(),
+                "matched": [p.pattern for p in compiled if p.search(message)],
+                "fails_on": sorted(set(FAILS_ON.findall(message))),
+            }
+        )
+    return items
+
+
 def rules_changes(since_iso):
     log = run(
         ["git", "log", f"--since={since_iso}", f"--format=%H{FIELD}%an{FIELD}%aI{FIELD}%s", "--"]
@@ -150,7 +194,8 @@ def rules_changes(since_iso):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Collect recent review comments, reverts and rules-file changes as JSON lines."
+        description="Collect recent review comments, review findings recorded in commit "
+        "messages, reverts and rules-file changes as JSON lines."
     )
     parser.add_argument(
         "--since",
@@ -161,6 +206,18 @@ def main():
         "--no-github",
         action="store_true",
         help="Skip the GitHub comment sources and collect git sources only",
+    )
+    parser.add_argument(
+        "--commit-grep",
+        action="append",
+        metavar="REGEX",
+        help="Extended regex, matched case-insensitively, for commit messages that record "
+        "review findings; repeatable. Replaces the defaults: " + ", ".join(DEFAULT_COMMIT_PATTERNS),
+    )
+    parser.add_argument(
+        "--no-commits",
+        action="store_true",
+        help="Skip the commit-message source",
     )
     args = parser.parse_args()
 
@@ -187,6 +244,8 @@ def main():
                 print(f"Skipping GitHub comments: {error}", file=sys.stderr)
     items += reverts(since_iso)
     items += rules_changes(since_iso)
+    if not args.no_commits:
+        items += commit_findings(since_iso, args.commit_grep or DEFAULT_COMMIT_PATTERNS)
 
     for item in items:
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1

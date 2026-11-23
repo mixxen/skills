@@ -2,7 +2,7 @@
 name: weed-pattern
 description: Find and remove existing copies of a banned, deprecated or workaround pattern across a codebase in small reviewable batches, until only deliberate uses remain, so agents stop copying it. Use this when a new lint rule or check has a baseline or suppression list of existing violations, when the user asks to clean up, migrate off, replace or get rid of an old pattern, library, API or workaround everywhere, when agents keep copying outdated code, or after encode-correction reports existing violations. Also use it to delete dead code and stale examples that agents might imitate.
 metadata:
-  version: "0.2"
+  version: "0.3"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -18,7 +18,9 @@ You need three things. Ask about any that aren't clear.
 - **The replacement:** the supported API or pattern.
 - **The allowed uses:** places where the pattern is deliberate and stays, such as inside the wrapper or framework module that the rule exempts.
 
-If nothing blocks new occurrences yet, set that up first with `encode-correction`. Otherwise the count can rise while you work.
+If nothing blocks new occurrences yet, set that up first with `encode-correction`. Otherwise the count can rise while you work. Check that the rule actually reaches the files: the lint command's globs and extensions (a `**/*.js` glob skips `.mjs`, `.ts` and `.vue`), and whether CI fails on the rule's severity (`--quiet` hides warnings, so a warn-level rule never fails a build).
+
+If the user hasn't named a pattern, survey candidates first and recommend one or two. Rank them by how many copies exist, whether they have spread across modules or packages, whether anything blocks new copies, whether the codebase already has the replacement (a house style to move towards), and what a copy costs when an agent imitates it. Show the candidates with counts and let the user pick.
 
 ## 1. Count and classify
 
@@ -27,7 +29,7 @@ Run the query and record the total. Put each occurrence into one of these groups
 - **Mechanical:** the replacement is a direct swap. Sometimes the right replacement is nothing at all: if the workaround wasn't needed (deferring work that is safe to do immediately), remove it rather than routing it through the supported API.
 - **Needs a design fix:** the pattern is patching over a deeper problem. Lauren Tan's example: agents used setTimeout and requestAnimationFrame to paper over a clash between an imperative architecture and a declarative one. Swapping one timer API for another keeps the bug. Fix the underlying problem, or flag it; don't trade one workaround for another.
 - **Allowed:** a deliberate use in an exempt place. Record these in the rule's configuration (exempt paths or allow-list), not in a code comment.
-- **Dead:** unused code, old examples or obsolete docs. Delete them rather than migrating them: agents copy these too, and removing them is cheaper than fixing them. Check nothing imports them first. If you can't delete a file in this environment, say so and give the exact command.
+- **Dead:** unused code, old examples or obsolete docs, including docs shipped in the published package, which agents read from `node_modules`. Delete them rather than migrating them: agents copy these too, and removing them is cheaper than fixing them. Check nothing imports them first. If you can't delete a file in this environment, say so and give the exact command.
 
 ## 2. Migrate in small batches
 
@@ -36,7 +38,7 @@ Group occurrences by module or owner so that each batch is easy to review, typic
 1. Replace the occurrences.
 2. Delete any comments that justified the old workaround. Once the workaround is gone they are wrong, and they teach the next agent that workarounds are acceptable. Don't replace them with new comments explaining why the workaround is no longer needed; that belongs in the commit message.
 3. Run the tests and the check. If the change affects behaviour, run the app and verify it, using the project's runtime verification skill if it has one.
-4. Lower the baseline so that the count can't go back up.
+4. Lower the baseline so that the count can't go back up. If the linter has no baseline feature, keep the rule off through a per-file override list instead, and remove each batch's files from the list.
 5. Make one commit or PR per batch, stating the before and after counts.
 
 ## 3. Finish when only allowed uses remain

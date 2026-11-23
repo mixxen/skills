@@ -2,7 +2,7 @@
 name: encode-correction
 description: Turn a correction into an automatic control (a better API, a fenced API, an import boundary, a lint rule or a test) so agents can't repeat the mistake, instead of adding another line to AGENTS.md or a rules file. Use this whenever someone corrects how code was written, a review comment points out a pattern that keeps recurring, or the user says things like "agents keep doing X", "make sure this never happens again", "add a lint rule for", "ban X" or "lock this down". Also use it when you are about to write a new rule, warning or "don't" note into AGENTS.md, CLAUDE.md, a rules file or a code comment; prefer a check over prose.
 metadata:
-  version: "0.2"
+  version: "0.3"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -29,7 +29,7 @@ If you can't name the "right" alternative, stop and ask. A ban with no supported
 Work down this list and stop at the first option that works. The higher options remove the mistake entirely; the lower ones only catch it.
 
 1. **Make it impossible.** Change the API or types so the wrong thing can't be written: remove the dangerous parameter, use a type that only the safe constructor produces, or make the internal module private.
-2. **Fence a risky API.** If an API is legitimate but needs nuance to use well, ban it in product code and allow it only inside a small, owned wrapper or framework module that offers a safe API. Lauren Tan's team bans React's useEffect in product code and allows it only inside their in-house framework's APIs.
+2. **Fence a risky API.** If an API is legitimate but needs nuance to use well, ban it in product code and allow it only inside a small, owned wrapper or framework module that offers a safe API. Lauren Tan's team bans React's useEffect in product code and allows it only inside their in-house framework's APIs. The same applies to a shared helper written to fix a recurring mistake: if nothing stops new code from writing its own copy, ban local reimplementations (for example by function name) everywhere except the helper's module.
 3. **Enforce a boundary.** If the mistake is code reaching across a boundary, make the boundary visible in the directory structure and enforce it with a dependency rule. Her team keeps `electron-main` and `electron-renderer` as top-level directories and bans imports between them.
 4. **Lint rule, type check or structural test.** Catch the pattern statically.
 5. **Behavioural test.** If the mistake is about what the code does rather than how it's written, add a test that fails on the wrong behaviour.
@@ -60,11 +60,11 @@ Add fixtures or tests showing that:
 - the right alternative passes;
 - any sanctioned exception, such as code inside the wrapper module, passes.
 
-Then run the check across the whole repo and note how many existing violations it finds.
+Then run the check across the whole repo and note how many existing violations it finds. Confirm the check reaches every file it should: the lint command's globs and extensions (`.mjs`, `.ts`, `.vue`), the config's ignore lists, and whether CI fails at the rule's severity (`--quiet` hides warnings). A rule that the project's command never applies to a file protects nothing there.
 
 ## 5. Block new cases now; clean up later
 
-Turn the check on so it fails for new code, without forcing a repo-wide rewrite in the same change. Use the linter's baseline or suppression feature if it has one. Otherwise, record the existing violations in a checked-in list that CI compares against, so the count can only go down. Hand the existing violations to the `weed-pattern` skill.
+Turn the check on so it fails for new code, without forcing a repo-wide rewrite in the same change. Use the linter's baseline or suppression feature if it has one. Otherwise, turn the rule off for the files that have violations through a per-file override list, or record the violations in a checked-in list that CI compares against, so the count can only go down. Hand the existing violations to the `weed-pattern` skill.
 
 Run the check where agents hit it during their normal loop: the pre-commit hook, the project's check command and CI. A nightly job alone is too late. Fast feedback is what makes agents fix the root cause instead of moving on.
 
