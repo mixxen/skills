@@ -7,6 +7,18 @@ A collection of reusable agent skills. Each skill lives in its own folder under 
 | Skill | Purpose |
 |---|---|
 | [UI/UX Reviewer](skills/ui-ux-reviewer/SKILL.md) | Review interfaces with strict, evidence-based 0–10 scores, actionable findings, and before/after comparisons. |
+| [Encode correction](skills/encode-correction/SKILL.md) | Turn a review correction into an automatic control (better API, import boundary, lint rule or test) instead of another line in AGENTS.md. |
+| [Harvest corrections](skills/harvest-corrections/SKILL.md) | Mine review comments, reverts and rules-file changes for recurring corrections and rank which to turn into checks next. |
+| [Weed pattern](skills/weed-pattern/SKILL.md) | Remove existing copies of a banned or deprecated pattern in small reviewable batches, so agents stop copying it. |
+| [Prose audit](skills/prose-audit/SKILL.md) | Shorten agent instructions: delete justifications and over-broad absolutes, settle contradictions, and hand enforceable rules to checks. |
+| [Run and verify](skills/run-and-verify/SKILL.md) | Run the app, drive the changed feature with the project's own tooling, and report evidence instead of trusting tests. |
+| [Statechart](skills/statechart/SKILL.md) | Draw a feature's state machine from the code as Mermaid and compare it with the intent: missing transitions, dead ends, unhandled events. |
+
+## Agent correction skills
+
+Six skills for keeping an agent-written codebase clean, based on Lauren Tan's talk *All Code Is Slop (Except Mine)* (AI Engineer Code Summit 2026). The loop: **harvest-corrections** finds what reviewers keep correcting, **encode-correction** turns each correction into a check, **weed-pattern** removes the existing copies agents would otherwise imitate, and **prose-audit** trims instruction files down to what needs human judgment. **run-and-verify** and **statechart** check finished work against what the user asked for.
+
+Each skill has evaluation cases in `evals/<case>/` (a `prompt.md`, a `case.yaml`, input fixtures in `files/` and one grader file per assertion in `graders/`), in the layout `claude plugin eval` reads.
 
 ## UI/UX Reviewer
 

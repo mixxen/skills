@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: bloated-agents-md
+expected_outcome: |
+  Classifies the statements in AGENTS.md and CLAUDE.md. Removes the setTimeout
+  justification and the excuse for skipping type checks in src/legacy, listing the
+  underlying design problems in the report. Does not simply delete the electron-main
+  import rule or the logger rule: it converts them to checks (or proposes that via
+  encode-correction) and keeps the text until a check exists. Fixes the stale make dev
+  command to the package.json dev script with pnpm, and resolves npm versus pnpm using
+  packageManager and pnpm-lock.yaml. Removes the duplicated async/await rule and asks
+  about its scope instead of keeping it as an unexplained absolute. Keeps the
+  product-owner and error-message guidance. Leaves the code comment in ChatList.tsx alone.
+  Reports line counts before and after.
+context:
+  scaffold_script: place-files.sh

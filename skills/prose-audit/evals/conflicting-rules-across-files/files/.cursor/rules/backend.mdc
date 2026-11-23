@@ -1,0 +1,6 @@
+---
+description: Backend conventions
+globs: ["src/**", "services/**"]
+---
+- Put all new API handlers in src/api/handlers.
+- Use Jest for tests.

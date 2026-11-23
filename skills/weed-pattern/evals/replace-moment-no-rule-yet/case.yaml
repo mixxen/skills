@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: replace-moment-no-rule-yet
+expected_outcome: |
+  Before or alongside the migration, adds a block on new moment imports (for example
+  no-restricted-imports with a message pointing to date-fns) so the count can't rise.
+  Counts the occurrences, migrates them in reviewable batches, and handles the
+  format-token differences between moment and date-fns correctly (for example YYYY-MM-DD
+  becomes yyyy-MM-dd and DD becomes dd). Removes moment from package.json once no imports
+  remain, and reports before and after counts.
+context:
+  scaffold_script: place-files.sh

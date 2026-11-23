@@ -1,0 +1,6 @@
+{
+  "name": "todo-app",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node server.mjs", "drive": "node scripts/drive.mjs" }
+}

@@ -1,0 +1,21 @@
+commit 7a1c90d3e2f4b5a6c7d8e9f001122334455667788
+Author: Tom Reyes <tom@example.com>
+Date:   Thu Nov 6 10:12:00 2026 +0000
+
+    Revert "Store refund amounts as float"
+
+    Rounding errors in refund totals (INC-88). This reverts commit 3e5f7a9.
+
+commit 5b2d81fe0a9c8b7d6e5f4a3b2c1d0e9f8a7b6c5d4
+Author: Priya Nair <priya@example.com>
+Date:   Wed Nov 12 09:40:00 2026 +0000
+
+    Add agent rules after payments review
+
+diff --git a/AGENTS.md b/AGENTS.md
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -4,0 +5,3 @@
++- NEVER call api.payments.example.com directly; use packages/gateway-client.
++- Use the Cents type for money. Never use float for amounts.
++- Always add a changelog entry.

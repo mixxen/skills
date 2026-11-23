@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: python-domain-boundary
+expected_outcome: |
+  Adds an enforced boundary so app/domain cannot import sqlalchemy, for example an
+  import-linter forbidden contract or Ruff banned-api (TID251) scoped so app/adapters is
+  still allowed. The error message or contract name explains the rule and points to
+  app/adapters/repository.py. The existing violation in app/domain/billing.py is recorded
+  as a baseline or exception and handed to weed-pattern rather than ignored. The response
+  shows or describes proof that the violation is caught and the adapter is allowed, and
+  ends with the skill's report summary.
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Collect recent corrections from a repository as JSON lines.
+
+Sources:
+  review_comment  inline PR review comments (GitHub, via gh)
+  pr_comment      PR conversation comments (GitHub, via gh)
+  revert          commits that revert earlier commits (git)
+  rules_change    lines added to agent rules files (git)
+
+Run from inside the repository. The GitHub sources need an authenticated gh
+CLI; pass --no-github to collect only the git sources (for GitLab, Bitbucket,
+or offline use). Bot accounts are skipped.
+
+Example:
+  python collect_corrections.py --since 2026-10-22 --out corrections.jsonl
+"""
+
+import argparse
+import json
+import shutil
+import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
+
+# Git pathspecs: without the glob magic, "*" also matches "/", so "*AGENTS.md"
+# finds AGENTS.md at any depth.
+RULE_PATHSPECS = [
+    "*AGENTS.md",
+    "*CLAUDE.md",
+    ".cursorrules",
+    ".cursor/rules",
+    ".github/copilot-instructions.md",
+    ".windsurfrules",
+]
+
+FIELD = "\x1f"
+RECORD = "\x1e"
+
+
+def run(cmd):
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace"
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"{' '.join(cmd)} failed: {result.stderr.strip()}")
+    return result.stdout
+
+
+def is_bot(login, user_type):
+    return user_type == "Bot" or (login or "").endswith("[bot]")
+
+
+def github_comments(since_iso):
+    """Inline review comments and PR conversation comments since a date."""
+    items = []
+    review_jq = (
+        '.[] | {kind: "review_comment", author: .user.login, author_type: .user.type, '
+        "created_at, url: .html_url, path, body} | @json"
+    )
+    conversation_jq = (
+        '.[] | select(.html_url | test("/pull/")) | {kind: "pr_comment", '
+        "author: .user.login, author_type: .user.type, created_at, "
+        "url: .html_url, body} | @json"
+    )
+    for endpoint, jq in (
+        ("pulls/comments", review_jq),
+        ("issues/comments", conversation_jq),
+    ):
+        out = run(
+            [
+                "gh", "api", "--paginate",
+                f"repos/{{owner}}/{{repo}}/{endpoint}?since={since_iso}&per_page=100",
+                "--jq", jq,
+            ]
+        )
+        for line in out.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            item = json.loads(line)
+            # "since" filters on update time; keep only comments created in the window.
+            if item.get("created_at", "") < since_iso:
+                continue
+            if is_bot(item.get("author"), item.get("author_type")):
+                continue
+            item.pop("author_type", None)
+            items.append(item)
+    return items
+
+
+def reverts(since_iso):
+    out = run(
+        [
+            "git", "log", f"--since={since_iso}", "-i",
+            "--grep=^revert", "--grep=This reverts commit",
+            f"--format=%H{FIELD}%an{FIELD}%aI{FIELD}%s{FIELD}%b{RECORD}",
+        ]
+    )
+    items = []
+    for record in out.split(RECORD):
+        record = record.strip("\n")
+        if not record:
+            continue
+        sha, author, date, subject, body = (record.split(FIELD) + [""] * 5)[:5]
+        items.append(
+            {
+                "kind": "revert",
+                "author": author,
+                "created_at": date,
+                "commit": sha,
+                "subject": subject,
+                "body": body.strip(),
+            }
+        )
+    return items
+
+
+def rules_changes(since_iso):
+    log = run(
+        ["git", "log", f"--since={since_iso}", f"--format=%H{FIELD}%an{FIELD}%aI{FIELD}%s", "--"]
+        + RULE_PATHSPECS
+    )
+    items = []
+    for line in log.splitlines():
+        if not line.strip():
+            continue
+        sha, author, date, subject = (line.split(FIELD) + [""] * 4)[:4]
+        diff = run(["git", "show", "--format=", "--unified=0", sha, "--"] + RULE_PATHSPECS)
+        current_file = None
+        for diff_line in diff.splitlines():
+            if diff_line.startswith("+++ "):
+                path = diff_line[4:]
+                current_file = path[2:] if path.startswith("b/") else path
+            elif diff_line.startswith("+") and not diff_line.startswith("+++"):
+                text = diff_line[1:].strip()
+                if text:
+                    items.append(
+                        {
+                            "kind": "rules_change",
+                            "author": author,
+                            "created_at": date,
+                            "commit": sha,
+                            "subject": subject,
+                            "path": current_file,
+                            "added_line": text,
+                        }
+                    )
+    return items
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Collect recent review comments, reverts and rules-file changes as JSON lines."
+    )
+    parser.add_argument(
+        "--since",
+        help="Start date, YYYY-MM-DD (default: 30 days ago)",
+    )
+    parser.add_argument("--out", help="Output file (default: stdout)")
+    parser.add_argument(
+        "--no-github",
+        action="store_true",
+        help="Skip the GitHub comment sources and collect git sources only",
+    )
+    args = parser.parse_args()
+
+    if args.since:
+        since = datetime.strptime(args.since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    else:
+        since = datetime.now(timezone.utc) - timedelta(days=30)
+    since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    try:
+        run(["git", "rev-parse", "--is-inside-work-tree"])
+    except (RuntimeError, FileNotFoundError):
+        sys.exit("Run this from inside a git repository (and make sure git is installed).")
+
+    items = []
+    counts = {}
+    if not args.no_github:
+        if shutil.which("gh") is None:
+            print("gh not found: skipping GitHub comments (use --no-github to silence this).", file=sys.stderr)
+        else:
+            try:
+                items += github_comments(since_iso)
+            except RuntimeError as error:
+                print(f"Skipping GitHub comments: {error}", file=sys.stderr)
+    items += reverts(since_iso)
+    items += rules_changes(since_iso)
+
+    for item in items:
+        counts[item["kind"]] = counts.get(item["kind"], 0) + 1
+
+    lines = "".join(json.dumps(item, ensure_ascii=False) + "\n" for item in items)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as handle:
+            handle.write(lines)
+    else:
+        sys.stdout.write(lines)
+
+    summary = ", ".join(f"{count} {kind}" for kind, count in sorted(counts.items())) or "nothing"
+    print(f"Collected since {since_iso}: {summary}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

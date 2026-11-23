@@ -1,0 +1,14 @@
+schema_version: "1.1"
+name: ban-useeffect-in-feature-code
+expected_outcome: |
+  Adds an ESLint restriction on useEffect (for example no-restricted-imports for the react
+  useEffect import plus no-restricted-syntax for React.useEffect) that applies to feature
+  code and exempts src/framework through configuration rather than inline disable
+  comments. The error message says why and points to the hooks in src/framework. The
+  existing violations in ChatList.tsx and Settings.tsx are counted and baselined or listed
+  for weed-pattern rather than silently left failing. The AGENTS.md line about useEffect
+  is removed or explicitly marked as now enforced. The response shows or describes proof
+  that a bad example fails and the framework file passes, and ends with the skill's report
+  summary.
+context:
+  scaffold_script: place-files.sh

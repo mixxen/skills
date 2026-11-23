@@ -1,0 +1,7 @@
+[project]
+name = "billing-service"
+version = "0.1.0"
+dependencies = ["sqlalchemy>=2.0"]
+
+[tool.ruff]
+line-length = 100

@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: timers-with-framework-exemption
+expected_outcome: |
+  Uses the lint rule and lint-baseline.json to find the four occurrences and keeps
+  src/framework/scheduler.ts as an allowed use. Replaces the mechanical cases (ChatInput
+  focus and Theme apply) with the framework scheduler. Deletes the unused OldBanner
+  component. Does not swap MessageList's 50ms timer for another timer or
+  requestAnimationFrame: it either fixes the store-ordering cause or flags it and leaves
+  it in the baseline with a reason. Deletes comments that justified removed workarounds,
+  updates lint-baseline.json to the remaining entries, and reports before and after
+  counts.
+context:
+  scaffold_script: place-files.sh

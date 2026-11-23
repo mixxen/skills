@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: login-mfa-flow
+expected_outcome: |
+  Produces a Mermaid stateDiagram-v2 from LoginForm.tsx. Recognises that resend-code and
+  the reset-password link exist. Flags that an expired MFA code shows the generic error
+  instead of the expiry message and new-code offer, that a "locked" result from verifyMfa
+  is ignored so the user can never reach the locked screen from the MFA step, and that a
+  network error during submit leaves the form stuck on submitting. Every arrow is backed
+  by a line of code, and the code is not changed.
+context:
+  scaffold_script: place-files.sh

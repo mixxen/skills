@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: upload-flow-gaps
+expected_outcome: |
+  Produces a Mermaid stateDiagram-v2 drawn from FileUpload.tsx. Recognises that Cancel and
+  Retry exist, but that Cancel only resets the screen without aborting the request, so a
+  cancelled upload can later jump the user from picking a file to "Uploaded!" or to the
+  failure screen. Flags that the failure screen has no way to choose a different file,
+  which the ticket requires. Every arrow is backed by a line of code, and the code is not
+  changed.
+context:
+  scaffold_script: place-files.sh

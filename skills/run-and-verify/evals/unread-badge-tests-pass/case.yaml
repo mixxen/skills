@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: unread-badge-tests-pass
+expected_outcome: |
+  Runs the unit tests (they pass) but doesn't treat them as proof. Starts the server in the
+  background and uses scripts/drive.mjs: the badge still shows 3 after opening the inbox,
+  because the /inbox handler in server.mjs calls markAllRead but discards its return value.
+  Checks a nearby feature from the feature map: archiving an unread message doesn't lower
+  the badge, because unreadCount in src/inbox.mjs doesn't exclude archived messages, which
+  the feature map says it should. Pastes driver output as printed, reports both problems
+  with file:line and a proposed fix, leads with the failure, edits nothing, and stops the
+  server.
+context:
+  scaffold_script: place-files.sh

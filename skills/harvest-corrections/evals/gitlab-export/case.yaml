@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: gitlab-export
+expected_outcome: |
+  Does not try to use gh or reach GitHub. Reads the GitLab notes, skipping system notes
+  such as "added 2 commits" and "approved this merge request" and the bot account. Groups
+  the direct-payments-API comments (three) and the float-for-money comments (two, plus a
+  revert tied to an incident), and ranks them with suggested controls such as an import or
+  URL ban pointing to gateway-client and a Cents type. Treats the lines added to AGENTS.md
+  as corrections written in prose and suggests turning them into checks. Lists the
+  refund-reason question under what review still catches, and uses the skill's report
+  structure.
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: conflicting-rules-across-files
+expected_outcome: |
+  Treats the billing service's nested AGENTS.md as a legitimate scope-specific override
+  rather than a contradiction, and makes that scoping explicit. Removes the duplicate
+  handler rule from .cursor/rules/backend.mdc. Corrects "Use Jest" to Vitest based on
+  package.json and vitest.config.ts. Flags "ALWAYS wrap every function in try/catch" as an
+  over-rotated rule and proposes a scoped rewrite or asks, instead of keeping it as is.
+  Ends with the audit report including findings per file and line counts.
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: one-off-misread-requirement
+expected_outcome: |
+  Recognises that this is a one-off misread requirement rather than a recurring code
+  pattern. Does not add a lint rule and does not add a rule to AGENTS.md or another rules
+  file. Adds a behavioural test next to the existing route tests asserting that GET
+  /exports responds with JSON (content type and body shape), and explains briefly why a
+  broader rule would be the wrong response.
+context:
+  scaffold_script: place-files.sh

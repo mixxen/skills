@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: rank-from-review-export
+expected_outcome: |
+  Drops the LGTM, thanks and typo items. Ranks the setTimeout cluster first (five review
+  comments plus a revert tied to an incident and a rules-file line), with a suggested
+  control such as a lint rule that points to the framework scheduler. Ranks the
+  renderer-importing-electron-main cluster second with a boundary or dependency-rule
+  suggestion. Flags console.log as something an existing check should have caught, noting
+  that the no-console rule only covers src/** and misses packages/desktop. Lists the copy,
+  naming and UX comments under what review still catches. Offers to run encode-correction
+  on the top item and uses the skill's report structure.
+context:
+  scaffold_script: place-files.sh

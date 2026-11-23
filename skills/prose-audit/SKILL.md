@@ -1,0 +1,53 @@
+---
+name: prose-audit
+description: Audit the prose that agents read (AGENTS.md, CLAUDE.md, rules files, skills, and the contributor and architecture docs they point to) and remove text that excuses workarounds or turns one small correction into an absolute rule, converting enforceable warnings into checks. Use this when the user asks to clean up, shorten, review, reorganise or deduplicate agent instructions or rules, when instruction files are long, stale, contradictory or full of NEVER and ALWAYS rules, when agents seem confused by their instructions, or for a periodic review of agent guidance. Code comments are out of scope.
+metadata:
+  version: "0.3"
+  source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
+---
+
+# Audit agent-facing prose
+
+Prose is the weakest layer of an agent's environment: nothing enforces it, and agents both ignore it and over-apply it. Two failure modes are common. Agents write down justifications for not doing the right thing, and they take one small correction and record it as a rule that can never be broken. Over time, instruction files fill up with both.
+
+The goal is a shorter set of instructions that holds only what needs human judgment. Anything code could check should become a check.
+
+## Scope
+
+Read every file agents load or are pointed to: AGENTS.md and any nested copies, CLAUDE.md, `.cursor/rules` and other rules directories, SKILL.md files, and the CONTRIBUTING and architecture docs those files reference.
+
+Leave code comments out. A comment policy enforced by a lint rule handles them better than an audit; if the project has no such policy, mention that in the report.
+
+Record each file's line count before you start.
+
+## What to look for
+
+Decide which of these each statement is:
+
+| Finding | What it looks like | Action |
+|---|---|---|
+| **Justification** | Explains why a workaround, shortcut or rule-break is fine ("we use setTimeout here because the store updates late") | Delete it. If it points at a real design problem, list that in the report. |
+| **Over-rotated rule** | An absolute (NEVER, ALWAYS, "under no circumstances") with no reason or scope, often added after a single incident | Find where it came from: `git log -S "[phrase]" -- [file]` shows the commit and usually the PR. If the original problem was narrow, propose rewriting it with its scope and reason, or deleting it. |
+| **Enforceable warning** | "Don't import X from Y", "always use helper Z", "never call API W directly" | Convert it with `encode-correction`, then delete the text once the check exists. Don't delete it first: until the check lands, the text is the only guard. |
+| **Stale** | Names a file, command, API or directory that no longer exists or now behaves differently | Check it mechanically: does the path exist, does the command run? Fix it or delete it. |
+| **Duplicate or contradiction** | The same rule in several files, or two rules that disagree | Keep one copy, in the most specific file that needs it. Use evidence in the repo (lockfiles, configs, scripts) to settle contradictions; report any you can't settle. |
+| **Judgment** | Guidance no check can capture: product intent, trade-offs, when to ask a person | Keep it, and keep it short. This is what prose is for. |
+
+## Make the changes
+
+Edit the files directly, grouped so that each change is easy to review. The files should end up shorter: new text replaces old text, and the total line count goes down. Deleted justifications go away entirely; don't move them into code comments or another doc. For over-rotated rules, and for contradictions where the answer depends on the team's intent, propose the change and ask rather than deciding alone: the person who added the rule may know something the history doesn't show.
+
+Don't delete a whole file, even one that would be left empty or holds only duplicates. Other tools or people may load it by path (a `.cursor/rules` file, a skill, a doc linked from elsewhere). Remove the content you're removing, then list the file under "Needs a decision" with a one-line reason to delete it.
+
+## Report
+
+```
+## Prose audit
+Files: [n]   Lines before: [N]   Lines after: [M]
+
+| File:line | Finding | Action | Note |
+|---|---|---|---|
+
+Handed to encode-correction: [list]
+Needs a decision: [list]
+```

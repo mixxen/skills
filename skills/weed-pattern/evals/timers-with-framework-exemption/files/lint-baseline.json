@@ -1,0 +1,8 @@
+{
+  "no-restricted-globals": [
+    "src/features/chat/ChatInput.tsx",
+    "src/features/chat/MessageList.tsx",
+    "src/features/settings/Theme.tsx",
+    "src/features/legacy/OldBanner.tsx"
+  ]
+}

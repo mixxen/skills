@@ -1,0 +1,63 @@
+---
+name: weed-pattern
+description: Find and remove existing copies of a banned, deprecated or workaround pattern across a codebase in small reviewable batches, until only deliberate uses remain, so agents stop copying it. Use this when a new lint rule or check has a baseline or suppression list of existing violations, when the user asks to clean up, migrate off, replace or get rid of an old pattern, library, API or workaround everywhere, when agents keep copying outdated code, or after encode-correction reports existing violations. Also use it to delete dead code and stale examples that agents might imitate.
+metadata:
+  version: "0.2"
+  source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
+---
+
+# Weed a pattern
+
+Agents learn from the code around them. Every leftover workaround, deprecated API or anti-pattern looks like the house style, so the next agent copies it and it spreads. Blocking new cases (with `encode-correction`) stops the spread; this skill removes what is already there.
+
+## Before you start
+
+You need three things. Ask about any that aren't clear.
+
+- **The pattern, and a mechanical way to find it.** Ideally that's the lint rule or check that bans it; otherwise a Semgrep, ast-grep or grep query. You need a query you can rerun, because it's how you prove progress.
+- **The replacement:** the supported API or pattern.
+- **The allowed uses:** places where the pattern is deliberate and stays, such as inside the wrapper or framework module that the rule exempts.
+
+If nothing blocks new occurrences yet, set that up first with `encode-correction`. Otherwise the count can rise while you work.
+
+## 1. Count and classify
+
+Run the query and record the total. Put each occurrence into one of these groups:
+
+- **Mechanical:** the replacement is a direct swap. Sometimes the right replacement is nothing at all: if the workaround wasn't needed (deferring work that is safe to do immediately), remove it rather than routing it through the supported API.
+- **Needs a design fix:** the pattern is patching over a deeper problem. Lauren Tan's example: agents used setTimeout and requestAnimationFrame to paper over a clash between an imperative architecture and a declarative one. Swapping one timer API for another keeps the bug. Fix the underlying problem, or flag it; don't trade one workaround for another.
+- **Allowed:** a deliberate use in an exempt place. Record these in the rule's configuration (exempt paths or allow-list), not in a code comment.
+- **Dead:** unused code, old examples or obsolete docs. Delete them rather than migrating them: agents copy these too, and removing them is cheaper than fixing them. Check nothing imports them first. If you can't delete a file in this environment, say so and give the exact command.
+
+## 2. Migrate in small batches
+
+Group occurrences by module or owner so that each batch is easy to review, typically one directory or 5 to 20 sites. For each batch:
+
+1. Replace the occurrences.
+2. Delete any comments that justified the old workaround. Once the workaround is gone they are wrong, and they teach the next agent that workarounds are acceptable. Don't replace them with new comments explaining why the workaround is no longer needed; that belongs in the commit message.
+3. Run the tests and the check. If the change affects behaviour, run the app and verify it, using the project's runtime verification skill if it has one.
+4. Lower the baseline so that the count can't go back up.
+5. Make one commit or PR per batch, stating the before and after counts.
+
+## 3. Finish when only allowed uses remain
+
+When the query finds only allowed uses, remove this rule's baseline entry so that the rule becomes a plain error everywhere except the exempt places. If the pattern was a library, remove the dependency too.
+
+## When to stop early
+
+Stop and report instead of forcing the change when:
+
+- the replacement can't handle a real use case (the rule may need a supported alternative first);
+- a batch breaks behaviour and the cause isn't clear;
+- an occurrence needs a design change bigger than this migration. List it with a short explanation and leave it in the baseline.
+
+## Report
+
+```
+## Pattern weeded: [name]
+Before: [N] occurrences   After: [M]
+Batches: [commits or PRs, with counts]
+Allowed uses kept: [K], recorded in [config file]
+Left in baseline: [each one, with the reason]
+Justification comments and dead code removed: [count or list]
+```
