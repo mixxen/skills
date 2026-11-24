@@ -2,7 +2,7 @@
 name: prose-audit
 description: Audit the prose that agents read (AGENTS.md, CLAUDE.md, rules files, skills, and the contributor and architecture docs they point to) and remove text that excuses workarounds or turns one small correction into an absolute rule, converting enforceable warnings into checks. Use this when the user asks to clean up, shorten, review, reorganise or deduplicate agent instructions or rules, when instruction files are long, stale, contradictory or full of NEVER and ALWAYS rules, when agents seem confused by their instructions, or for a periodic review of agent guidance. Code comments are out of scope.
 metadata:
-  version: "0.5"
+  version: "0.6"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -16,7 +16,7 @@ The goal is a shorter set of instructions that holds only what needs human judgm
 
 Read every file agents load or are pointed to: AGENTS.md and any nested copies, CLAUDE.md, `.cursor/rules` and other rules directories, SKILL.md files, and the CONTRIBUTING and architecture docs those files reference.
 
-If none of these exist, say so; a repo that agents work in with no AGENTS.md is worth reporting. Then audit what agents read instead: docs written for agents (handoffs, prompts, agent guides), docs the code or tooling points agents to, and READMEs and docs shipped in published packages, which agents read from `node_modules`. Whichever case applies, say in the report which files you audited and why.
+If none of these exist, say so; a repo that agents work in with no AGENTS.md is worth reporting. Then audit what agents read instead, in this order: docs the code or tooling points agents to, docs written for agents (handoffs, prompts, agent guides), then READMEs and docs shipped in published packages, which agents read from `node_modules`. Where the last group is large, read the top-level READMEs in full and check the rest mechanically for stale paths, commands and labels. Whichever case applies, say in the report which files you read in full, which you checked mechanically, and which you skipped, and why.
 
 Leave code comments out. A comment policy enforced by a lint rule handles them better than an audit; if the project has no such policy, mention that in the report.
 
@@ -34,7 +34,7 @@ Decide which of these each statement is:
 | **Stale** | A present-tense claim that names a file, command, API, version, directory or UI label that no longer exists or now behaves differently | Check it mechanically: does the path exist, does the command run, do quoted UI labels, selectors and example snippets still match the code? Fix it or delete it. A dated statement ("on 3 March, 61 tests passed") is correct for its date. A setting read only by an outside consumer can't be settled by searching this repo; ask. |
 | **Restates a check** | An instruction to agents or contributors that an existing test, script or lint rule already enforces | Delete it; at most keep a one-line pointer to the check. |
 | **Reference for people** | API docs, integrator guides and format specs that people build against | Leave it, even where tests also cover what it says; trim only change history and stale claims. |
-| **Spec invariant** | NEVER or ALWAYS describing what the system guarantees (a format, an API contract), not telling anyone what to do | Not an over-rotated rule. Check that a test covers it, and list the ones no test covers. |
+| **Spec invariant** | NEVER or ALWAYS describing what the system guarantees (a format, an API contract), not telling anyone what to do | Not an over-rotated rule. Check that a test covers it and list the ones no test covers. In a long spec, check only the absolutes (NEVER, ALWAYS, MUST) and those agent instructions point to, and say how many you left unchecked. |
 | **Historical record** | Dated design docs, plans, changelogs, trial prompts and their results | Don't rewrite it: it's evidence, and editing a benchmark prompt breaks comparison between runs. If it reads as current guidance, add a one-line status at the top pointing to the doc that is current. A finished one-shot prompt goes under "Needs a decision" for deletion. |
 | **Duplicate or contradiction** | The same rule in several files, or two rules that disagree | Keep one copy, in the most specific file that needs it. Use evidence in the repo (lockfiles, configs, scripts) to settle contradictions; report any you can't settle. |
 | **Judgment** | Guidance no check can capture: product intent, trade-offs, when to ask a person | Keep it, and keep it short. This is what prose is for. |
@@ -49,7 +49,7 @@ Don't delete a whole file, even one that would be left empty or holds only dupli
 
 ```
 ## Prose audit
-Scope: [which files were audited, and why those]
+Scope: [read in full / checked mechanically / skipped, and why]
 Files: [n]   Lines before: [N]   Lines after: [M]
 
 | File:line | Finding | Action | Note |

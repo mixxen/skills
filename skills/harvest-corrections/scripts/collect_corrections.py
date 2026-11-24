@@ -10,9 +10,11 @@ Sources:
                   a regression fix (git; patterns set with --commit-grep)
 
 Reverts and commit findings also carry "merge" (the first-parent merge that
-brought the commit in) and "pr" (the PR or merge request number from that merge's
+brought the commit in) and "pr" (the PR or merge request from that merge's
 message, or from a "(#123)" squash subject), so findings can be counted per PR
-when the history has no PR links.
+when the history has no PR links. "pr" keeps the host's notation: "#45" for a
+GitHub pull request, "group/project!12" for a GitLab merge request, so numbers
+from a repository that moved hosts don't collide.
 
 Run from inside the repository. The GitHub sources need an authenticated gh
 CLI; pass --no-github to collect only the git sources (for GitLab, Bitbucket,
@@ -53,9 +55,10 @@ DEFAULT_COMMIT_PATTERNS = [
     r"\b(fail|fails|failed|failing|red) on [0-9a-f]{7,40}",
 ]
 FAILS_ON = re.compile(r"\b(?:fail|fails|failed|failing|red) on ([0-9a-f]{7,40})\b", re.IGNORECASE)
-# PR or merge request numbers in merge messages and squash subjects:
-# "See merge request group/project!123", "Merge pull request #45", "Fix x (#67)".
-PR_REF = re.compile(r"merge request \S*!(\d+)|pull request #(\d+)|\(#(\d+)\)\s*$", re.IGNORECASE | re.MULTILINE)
+# PR or merge request references in merge messages and squash subjects, kept in
+# the host's notation: "See merge request group/project!123" -> "group/project!123",
+# "Merge pull request #45" -> "#45", "Fix x (#67)" -> "#67".
+PR_REF = re.compile(r"merge request (\S*!\d+)|pull request (#\d+)|\((#\d+)\)\s*$", re.IGNORECASE | re.MULTILINE)
 
 FIELD = "\x1f"
 RECORD = "\x1e"
@@ -120,7 +123,7 @@ def pr_number(text):
 def merge_map(since_iso):
     """Map each commit to the first-parent merge that brought it into the current branch.
 
-    Returns {commit sha: {"merge": merge sha, "pr": number or None}}. Squash and rebase
+    Returns {commit sha: {"merge": merge sha, "pr": reference or None}}. Squash and rebase
     workflows have no such merges; their PR number, if any, is read from the subject.
     """
     out = run(

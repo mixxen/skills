@@ -2,7 +2,7 @@
 name: run-and-verify
 description: Start the app, drive the feature that just changed through the project's own CLI or driver, check it behaves as a user would expect, debug with real developer tools when it doesn't, and leave reviewable evidence (commands, output, screenshots or video). Uses a feature map, a list of the app's features in the user's own words, so "the panel in the left sidebar" points at something concrete. Use this whenever code that changes user-visible behaviour is finished, when the user says verify, check it works, try it, test it in the app, show me, or before opening a PR, even if tests already pass.
 metadata:
-  version: "0.8"
+  version: "0.9"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -40,7 +40,7 @@ If the change has no UI (a library API, a validation rule, a build step), the "u
 
 Start the app in the background, wait until it's ready (health endpoint, log line, port open), then perform each check with the driver. Prefer commands with text output you can quote, and paste that output exactly as the tool printed it: trim long output with "…", but don't reformat, shorten keys or paraphrase it. A reviewer has to be able to match your evidence against a re-run.
 
-Where you can, run the same checks on the commit before the change too (in a git worktree or a copy), so the evidence shows the change made the difference: refused before, accepted after. A check that passes on both sides doesn't test the change.
+Where you can, run the same checks on the commit before the change too (in a git worktree or a copy), so the evidence shows the change made the difference: refused before, accepted after. A check that passes on both sides doesn't test the change. In a workspace monorepo, a worktree that reuses the main checkout's `node_modules` resolves workspace packages to the main checkout, so "before" silently runs the new code; install in the worktree, or confirm that the files changed aren't in a linked package.
 
 If the user says the tests pass, run them too, but don't count them as evidence that the feature works. A unit test checks a function the way the test calls it; the app may call it differently, or not at all. Capture a screenshot or short recording at the moments a reviewer would want to see, if the tooling allows.
 

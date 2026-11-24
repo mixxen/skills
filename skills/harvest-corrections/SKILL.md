@@ -2,7 +2,7 @@
 name: harvest-corrections
 description: Mine recent PR review comments, reverts and changes to agent rules files for corrections that keep recurring, group them, and rank which to turn into automatic checks next, along with a summary of what human review still catches. Use this when the user asks what keeps coming up in code review, what to lint or automate next, why review is a bottleneck, which agent mistakes repeat, or wants a weekly or monthly review of corrections. Hand the top items to encode-correction.
 metadata:
-  version: "0.3"
+  version: "0.4"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -12,7 +12,7 @@ The ideal is to turn every correction into a check the moment it happens. In pra
 
 ## Inputs
 
-Default window: the last 30 days, or since the previous harvest report if the user keeps them. If corrections cluster in a longer stretch, such as the current release or milestone, widen the window to that and say so; a fixed 30 days can cut a cluster in half. Sources, most useful first:
+Default window: the last 30 days, or since the previous harvest report if the user keeps them. If corrections cluster in a longer stretch, such as the current release or milestone, widen the window to that and say so; a fixed 30 days can cut a cluster in half. If the project doesn't tag releases, the last version bump marks the start: `git log -S'"version"' --format='%h %ad %s' -- package.json` (or the project's version file). Sources, most useful first:
 
 1. **PR review comments**, both inline and in the PR conversation.
 2. **Reverts**: commits that undo earlier work, and the reason given.
@@ -28,7 +28,7 @@ python scripts/collect_corrections.py --since 2026-10-22 --out corrections.jsonl
 
 The review comments need a signed-in `gh` CLI; everything else needs only `git`. It skips bot accounts and merge commits. For other hosts, pass `--no-github` and fetch review comments with that host's CLI or API if you can (for GitLab, `glab api projects/:id/merge_requests/:iid/discussions`). If you can't, say so in the Sources line ("0 review comments: GitLab not reachable") and rely on commit messages.
 
-Commit messages are matched against review-style patterns by default (review, regression, corrective, "fails on <sha>" or "red on <sha>"); pass `--commit-grep` (repeatable, extended regex) to use the project's own words, such as its finding IDs. "Regression" also matches commits that only add a regression test to a new feature; read those before counting them. Each commit item also carries `pr` and `merge`: the PR or merge request it was merged in, worked out from the merge commit or a "(#123)" squash subject.
+Commit messages are matched against review-style patterns by default (review, regression, corrective, "fails on <sha>" or "red on <sha>"); pass `--commit-grep` (repeatable, extended regex) to use the project's own words, such as its finding IDs. "Regression" also matches commits that only add a regression test to a new feature; read those before counting them. Each commit item also carries `pr` and `merge`: the PR or merge request it was merged in, worked out from the merge commit or a "(#123)" squash subject. `pr` keeps the host's notation (`#45` on GitHub, `group/project!12` on GitLab), so a repository that moved hosts doesn't merge two PRs that share a number.
 
 ## 1. Turn comments into corrections
 

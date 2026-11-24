@@ -2,7 +2,7 @@
 name: weed-pattern
 description: Find and remove existing copies of a banned, deprecated or workaround pattern across a codebase in small reviewable batches, until only deliberate uses remain, so agents stop copying it. Use this when a new lint rule or check has a baseline or suppression list of existing violations, when the user asks to clean up, migrate off, replace or get rid of an old pattern, library, API or workaround everywhere, when agents keep copying outdated code, or after encode-correction reports existing violations. Also use it to delete dead code and stale examples that agents might imitate.
 metadata:
-  version: "0.4"
+  version: "0.5"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -24,7 +24,7 @@ If the user hasn't named a pattern, survey candidates first and recommend one or
 
 ## 1. Count and classify
 
-Run the query and record the total. Put each occurrence into one of these groups:
+Run the query and record the total. If the baseline turns the rule off for some files, the normal lint command reports nothing there; count with the rule forced on (ESLint's `overrideConfig`, or `--rule` on the CLI, which takes precedence over the config file) so baselined files are included. Put each occurrence into one of these groups:
 
 - **Mechanical:** the replacement is a direct swap. Sometimes the right replacement is nothing at all: if the workaround wasn't needed (deferring work that is safe to do immediately), remove it rather than routing it through the supported API.
 - **Needs a design fix:** the pattern is patching over a deeper problem. Lauren Tan's example: agents used setTimeout and requestAnimationFrame to paper over a clash between an imperative architecture and a declarative one. Swapping one timer API for another keeps the bug. Fix the underlying problem, or flag it; don't trade one workaround for another.
@@ -38,7 +38,7 @@ Group occurrences by module or owner so that each batch is easy to review, typic
 1. Replace the occurrences.
 2. Delete any comments that justified the old workaround. Once the workaround is gone they are wrong, and they teach the next agent that workarounds are acceptable. Don't replace them with new comments explaining why the workaround is no longer needed; that belongs in the commit message.
 3. Run the tests and the check. If the change affects behaviour, run the app and verify it, using the project's runtime verification skill if it has one. For a swap meant to change nothing, run the old and new code side by side on representative and edge inputs, and list every difference in the commit message: tests rarely cover the edges where two implementations disagree.
-4. Lower the baseline so that the count can't go back up. If the linter has no baseline feature, keep the rule off through a per-file override list instead, and remove each batch's files from the list.
+4. Lower the baseline so that the count can't go back up. If the linter has no baseline feature, lower the checked-in list or remove each batch's files from the per-file override list. Update any test that pins the baseline in the same commit.
 5. Make one commit or PR per batch, stating the before and after counts.
 
 ## 3. Finish when only allowed uses remain

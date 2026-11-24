@@ -2,7 +2,7 @@
 name: statechart
 description: Draw a feature's state machine from the user's point of view, read from the code that was actually written, as a Mermaid state diagram, then compare it with what was asked for and list missing transitions, dead ends and unreachable states. Use this to check whether an agent understood the intent behind a UI flow, when reviewing a feature with several states (forms, uploads, wizards, auth, sync, players, onboarding), when the user asks for a state diagram, statechart or flow of a feature, or alongside screenshots and videos from run-and-verify.
 metadata:
-  version: "0.5"
+  version: "0.6"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -58,7 +58,7 @@ Find the intent in the ticket, the PR description, design or spec docs in the re
 - **Unhandled events**: errors, timeouts, offline or concurrent changes that a state ignores.
 - **Extra behaviour**: arrows the intent didn't ask for. Some are fine, but say so.
 
-Before you report a gap, trace it through the code once more: which line sets the state, which event fires, and which lines clear or reset it on the way. Explanations of when something carries over (a stale error, a leftover value, a late response) are easy to get wrong from a first read, and a wrong explanation sends the fix to the wrong place. Where the running app or the project's tests can reach the state, confirm the gap by running it as well: a gap seen happening is worth more than a traced one. Mark each gap as confirmed by running, by reading, or unconfirmed.
+Before you report a gap, trace it through the code once more: which line sets the state, which event fires, and which lines clear or reset it on the way. Explanations of when something carries over (a stale error, a leftover value, a late response) are easy to get wrong from a first read, and a wrong explanation sends the fix to the wrong place. Where the running app or the project's tests can reach the state, confirm the gap by running it as well: a gap seen happening is worth more than a traced one. Mark each gap as confirmed by running, by reading, or unconfirmed, and say how it ran: in the app, in the test harness, or with an injected fault. If only part of the chain ran (the error was injected, the recovery was read), mark each part.
 
 Don't fix the code as part of this skill unless asked. The diagram and the gaps are the output; the user decides what to change.
 
@@ -76,7 +76,7 @@ Source: [files]
 
 | Gap | Kind | Where in code | Intent says | Confirmed |
 |---|---|---|---|---|
-| [e.g. no cancel while uploading] | missing transition | Upload.tsx:42 | "user can cancel an upload" | by running / by reading / unconfirmed |
+| [e.g. no cancel while uploading] | missing transition | Upload.tsx:42 | "user can cancel an upload" | by running (in the app, harness or injected fault) / by reading / unconfirmed, per part |
 
 Questions: [anything the intent doesn't settle]
 ```
