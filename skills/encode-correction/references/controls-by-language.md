@@ -21,3 +21,11 @@ Common, maintained tools for each kind of control in `SKILL.md`. Prefer what the
 ## Scoping a rule to product code
 
 Most fenced-API rules need an exemption for the wrapper module that legitimately uses the API. Express the exemption in the tool's configuration (exempt paths or an allow-list), not in inline disable comments. Configuration is reviewed in one place; scattered disable comments look like permission to the next agent.
+
+## Testing a rule that lives only in configuration
+
+`RuleTester` covers custom ESLint rules, not a core rule configured in the project's config (such as `no-restricted-syntax`). Test those by linting fixture text through the ESLint Node API with the project's config, once with a `filePath` outside the exempt path (expect your message) and once inside it (expect no error):
+
+```js
+const [result] = await new ESLint().lintText(code, { filePath: 'src/feature/example.js' })
+```

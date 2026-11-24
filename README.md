@@ -8,7 +8,7 @@ A collection of reusable agent skills. Each skill lives in its own folder under 
 |---|---|
 | [UI/UX Reviewer](skills/ui-ux-reviewer/SKILL.md) | Review interfaces with strict, evidence-based 0–10 scores, actionable findings, and before/after comparisons. |
 | [Encode correction](skills/encode-correction/SKILL.md) | Turn a review correction into an automatic control (better API, import boundary, lint rule or test) instead of another line in AGENTS.md. |
-| [Harvest corrections](skills/harvest-corrections/SKILL.md) | Mine review comments, reverts and rules-file changes for recurring corrections and rank which to turn into checks next. |
+| [Harvest corrections](skills/harvest-corrections/SKILL.md) | Mine review comments, review findings in commit messages, reverts and rules-file changes for recurring corrections and rank which to turn into checks next. |
 | [Weed pattern](skills/weed-pattern/SKILL.md) | Remove existing copies of a banned or deprecated pattern in small reviewable batches, so agents stop copying it. |
 | [Prose audit](skills/prose-audit/SKILL.md) | Shorten agent instructions: delete justifications and over-broad absolutes, settle contradictions, and hand enforceable rules to checks. |
 | [Run and verify](skills/run-and-verify/SKILL.md) | Run the app, drive the changed feature with the project's own tooling, and report evidence instead of trusting tests. |

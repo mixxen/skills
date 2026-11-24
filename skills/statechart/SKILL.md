@@ -2,7 +2,7 @@
 name: statechart
 description: Draw a feature's state machine from the user's point of view, read from the code that was actually written, as a Mermaid state diagram, then compare it with what was asked for and list missing transitions, dead ends and unreachable states. Use this to check whether an agent understood the intent behind a UI flow, when reviewing a feature with several states (forms, uploads, wizards, auth, sync, players, onboarding), when the user asks for a state diagram, statechart or flow of a feature, or alongside screenshots and videos from run-and-verify.
 metadata:
-  version: "0.4"
+  version: "0.5"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -33,11 +33,11 @@ Note guards ("only if the form is valid") on the arrow. For each transition, rec
 
 Use Mermaid `stateDiagram-v2`, with user-facing names. Use nested states only when they make the diagram easier to read.
 
-Every arrow must come from a line of code you can cite. When one handler connects every state in a group to every other (any tab to any tab), draw one representative arrow, and say in its table row that the same handler covers the rest, citing it. Don't draw arrows the intent asks for but the code lacks, and don't invent arrows to illustrate a problem (such as a self-loop labelled "no exit"); show problems by marking states instead. A reviewer should be able to trust that the diagram is what was built.
+Every arrow must come from a line of code you can cite. When one handler connects every state in a group to every other (any tab to any tab), draw one representative arrow, and say in its table row that the same handler covers the rest, citing it. Don't draw arrows the intent asks for but the code lacks, and don't invent arrows to illustrate a problem (such as a self-loop labelled "no exit"); show problems by marking states instead. A self-loop the code really performs (an action that's refused, a loop that restarts) is fine; cite it like any other arrow. A reviewer should be able to trust that the diagram is what was built.
 
 Mark problems in the diagram itself, so they are visible without reading the table: give dead-end and unreachable states a `classDef` (for example `classDef gap stroke:#c00,stroke-width:3px`) and a `note right of` saying what's wrong. Include arrows for system events that land somewhere surprising, such as a response arriving after the user cancelled.
 
-Keep labels on one line: no `\n`, quotes or extra colons, which Mermaid renders literally or rejects.
+Keep labels on one line: no `\n`, quotes or extra colons, which Mermaid renders literally or rejects. Render the diagram once before reporting (with mermaid-cli, or `mermaid.parse` in a page) and note the Mermaid version; if you can't render it, say so.
 
 ```mermaid
 stateDiagram-v2
@@ -50,7 +50,7 @@ stateDiagram-v2
 
 ## 4. Compare with the intent
 
-Find the intent in the ticket, the PR description, the user's message, or ask. Then check:
+Find the intent in the ticket, the PR description, design or spec docs in the repository, the user's message, or ask. Then check:
 
 - **Missing transitions**: things the intent asks for that have no arrow (cancel, retry, undo, back).
 - **Dead ends**: states with no way out except reloading.
@@ -58,7 +58,7 @@ Find the intent in the ticket, the PR description, the user's message, or ask. T
 - **Unhandled events**: errors, timeouts, offline or concurrent changes that a state ignores.
 - **Extra behaviour**: arrows the intent didn't ask for. Some are fine, but say so.
 
-Before you report a gap, trace it through the code once more: which line sets the state, which event fires, and which lines clear or reset it on the way. Explanations of when something carries over (a stale error, a leftover value, a late response) are easy to get wrong from a first read, and a wrong explanation sends the fix to the wrong place. If you can't confirm the path, say it's unconfirmed.
+Before you report a gap, trace it through the code once more: which line sets the state, which event fires, and which lines clear or reset it on the way. Explanations of when something carries over (a stale error, a leftover value, a late response) are easy to get wrong from a first read, and a wrong explanation sends the fix to the wrong place. Where the running app or the project's tests can reach the state, confirm the gap by running it as well: a gap seen happening is worth more than a traced one. Mark each gap as confirmed by running, by reading, or unconfirmed.
 
 Don't fix the code as part of this skill unless asked. The diagram and the gaps are the output; the user decides what to change.
 
@@ -74,9 +74,9 @@ Source: [files]
 |---|---|---|---|
 | [state] | [user action or system event] | [state] | [file:line] |
 
-| Gap | Kind | Where in code | Intent says |
-|---|---|---|---|
-| [e.g. no cancel while uploading] | missing transition | Upload.tsx:42 | "user can cancel an upload" |
+| Gap | Kind | Where in code | Intent says | Confirmed |
+|---|---|---|---|---|
+| [e.g. no cancel while uploading] | missing transition | Upload.tsx:42 | "user can cancel an upload" | by running / by reading / unconfirmed |
 
 Questions: [anything the intent doesn't settle]
 ```

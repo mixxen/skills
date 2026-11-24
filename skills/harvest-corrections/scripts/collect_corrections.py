@@ -9,6 +9,11 @@ Sources:
   commit_finding  non-merge commits whose message records a review finding or
                   a regression fix (git; patterns set with --commit-grep)
 
+Reverts and commit findings also carry "merge" (the first-parent merge that
+brought the commit in) and "pr" (the PR or merge request number from that merge's
+message, or from a "(#123)" squash subject), so findings can be counted per PR
+when the history has no PR links.
+
 Run from inside the repository. The GitHub sources need an authenticated gh
 CLI; pass --no-github to collect only the git sources (for GitLab, Bitbucket,
 or offline use). Bot accounts and merge commits are skipped.
@@ -30,21 +35,27 @@ from datetime import datetime, timedelta, timezone
 RULE_PATHSPECS = [
     "*AGENTS.md",
     "*CLAUDE.md",
+    "*GEMINI.md",
     ".cursorrules",
     ".cursor/rules",
+    ".clinerules",
     ".github/copilot-instructions.md",
+    ".github/instructions",
     ".windsurfrules",
 ]
 
 # Extended regexes (matched case-insensitively) for commit messages that record a
 # review finding or a regression fix. --commit-grep replaces them.
 DEFAULT_COMMIT_PATTERNS = [
-    r"review",
-    r"regression",
-    r"corrective",
-    r"fails on [0-9a-f]{7,40}",
+    r"\breview",
+    r"\bregression",
+    r"\bcorrective",
+    r"\b(fail|fails|failed|failing|red) on [0-9a-f]{7,40}",
 ]
-FAILS_ON = re.compile(r"\b(?:fails|failed|failing) on ([0-9a-f]{7,40})\b", re.IGNORECASE)
+FAILS_ON = re.compile(r"\b(?:fail|fails|failed|failing|red) on ([0-9a-f]{7,40})\b", re.IGNORECASE)
+# PR or merge request numbers in merge messages and squash subjects:
+# "See merge request group/project!123", "Merge pull request #45", "Fix x (#67)".
+PR_REF = re.compile(r"merge request \S*!(\d+)|pull request #(\d+)|\(#(\d+)\)\s*$", re.IGNORECASE | re.MULTILINE)
 
 FIELD = "\x1f"
 RECORD = "\x1e"
@@ -98,6 +109,47 @@ def github_comments(since_iso):
                 continue
             item.pop("author_type", None)
             items.append(item)
+    return items
+
+
+def pr_number(text):
+    match = PR_REF.search(text or "")
+    return next((group for group in match.groups() if group), None) if match else None
+
+
+def merge_map(since_iso):
+    """Map each commit to the first-parent merge that brought it into the current branch.
+
+    Returns {commit sha: {"merge": merge sha, "pr": number or None}}. Squash and rebase
+    workflows have no such merges; their PR number, if any, is read from the subject.
+    """
+    out = run(
+        [
+            "git", "log", "--first-parent", "--merges", f"--since={since_iso}",
+            f"--format=%H{FIELD}%s{FIELD}%b{RECORD}",
+        ]
+    )
+    mapping = {}
+    for record in out.split(RECORD):
+        record = record.strip("\n")
+        if not record:
+            continue
+        sha, subject, body = (record.split(FIELD) + [""] * 3)[:3]
+        pr = pr_number(f"{subject}\n{body}")
+        try:
+            members = run(["git", "rev-list", "--no-merges", f"{sha}^1..{sha}^2"]).split()
+        except RuntimeError:
+            continue
+        for member in members:
+            mapping.setdefault(member, {"merge": sha, "pr": pr})
+    return mapping
+
+
+def add_merge_info(items, mapping):
+    for item in items:
+        info = mapping.get(item.get("commit"), {})
+        item["merge"] = info.get("merge")
+        item["pr"] = info.get("pr") or pr_number(item.get("subject"))
     return items
 
 
@@ -199,7 +251,7 @@ def main():
     )
     parser.add_argument(
         "--since",
-        help="Start date, YYYY-MM-DD (default: 30 days ago)",
+        help="Start date, YYYY-MM-DD (default: 30 days ago, at 00:00 UTC)",
     )
     parser.add_argument("--out", help="Output file (default: stdout)")
     parser.add_argument(
@@ -224,7 +276,10 @@ def main():
     if args.since:
         since = datetime.strptime(args.since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     else:
-        since = datetime.now(timezone.utc) - timedelta(days=30)
+        # Midnight UTC, so two runs on the same day use the same window.
+        since = (datetime.now(timezone.utc) - timedelta(days=30)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
     since_iso = since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     try:
@@ -242,10 +297,11 @@ def main():
                 items += github_comments(since_iso)
             except RuntimeError as error:
                 print(f"Skipping GitHub comments: {error}", file=sys.stderr)
-    items += reverts(since_iso)
-    items += rules_changes(since_iso)
+    git_items = reverts(since_iso)
     if not args.no_commits:
-        items += commit_findings(since_iso, args.commit_grep or DEFAULT_COMMIT_PATTERNS)
+        git_items += commit_findings(since_iso, args.commit_grep or DEFAULT_COMMIT_PATTERNS)
+    items += add_merge_info(git_items, merge_map(since_iso))
+    items += rules_changes(since_iso)
 
     for item in items:
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1

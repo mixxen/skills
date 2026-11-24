@@ -2,7 +2,7 @@
 name: harvest-corrections
 description: Mine recent PR review comments, reverts and changes to agent rules files for corrections that keep recurring, group them, and rank which to turn into automatic checks next, along with a summary of what human review still catches. Use this when the user asks what keeps coming up in code review, what to lint or automate next, why review is a bottleneck, which agent mistakes repeat, or wants a weekly or monthly review of corrections. Hand the top items to encode-correction.
 metadata:
-  version: "0.2"
+  version: "0.3"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -16,7 +16,7 @@ Default window: the last 30 days, or since the previous harvest report if the us
 
 1. **PR review comments**, both inline and in the PR conversation.
 2. **Reverts**: commits that undo earlier work, and the reason given.
-3. **Changes to agent rules files** such as AGENTS.md, CLAUDE.md and rules directories. Each added "don't" line is a correction someone wrote as prose instead of code.
+3. **Changes to agent rules files** such as AGENTS.md, CLAUDE.md, GEMINI.md and rules directories. Each added "don't" line is a correction someone wrote as prose instead of code.
 4. **Commit messages.** Teams that review before merging often record findings in the fix commit itself ("review round 2: …", "addresses R1", "regression test fails on 1a2b3c4"). Where review comments aren't available, these are the main source. One commit body can list several findings; split them into separate corrections.
 5. **Agent session logs**, only if the user points you to them. Don't go looking through personal logs.
 
@@ -26,7 +26,9 @@ Default window: the last 30 days, or since the previous harvest report if the us
 python scripts/collect_corrections.py --since 2026-10-22 --out corrections.jsonl
 ```
 
-The review comments need a signed-in `gh` CLI; everything else needs only `git`. It skips bot accounts and merge commits. For other hosts, pass `--no-github` and fetch review comments with that host's CLI or API if you can. Commit messages are matched against review-style patterns by default (review, regression, corrective, "fails on <sha>"); pass `--commit-grep` (repeatable, extended regex) to use the project's own words, such as its finding IDs.
+The review comments need a signed-in `gh` CLI; everything else needs only `git`. It skips bot accounts and merge commits. For other hosts, pass `--no-github` and fetch review comments with that host's CLI or API if you can (for GitLab, `glab api projects/:id/merge_requests/:iid/discussions`). If you can't, say so in the Sources line ("0 review comments: GitLab not reachable") and rely on commit messages.
+
+Commit messages are matched against review-style patterns by default (review, regression, corrective, "fails on <sha>" or "red on <sha>"); pass `--commit-grep` (repeatable, extended regex) to use the project's own words, such as its finding IDs. "Regression" also matches commits that only add a regression test to a new feature; read those before counting them. Each commit item also carries `pr` and `merge`: the PR or merge request it was merged in, worked out from the merge commit or a "(#123)" squash subject.
 
 ## 1. Turn comments into corrections
 
@@ -40,7 +42,7 @@ If an existing check should have caught something and didn't, keep that item and
 
 ## 2. Group and count
 
-Cluster corrections that describe the same rule, even when they're worded differently. Group by the underlying mistake, not by feature: "cleanup error replaces the original error" in five different modules is one cluster. For each cluster, record how many times it appears, in how many PRs (or commits, when there are no PR links), and two or three example links.
+Cluster corrections that describe the same rule, even when they're worded differently. Group by the underlying mistake, not by feature: "cleanup error replaces the original error" in five different modules is one cluster. For each cluster, record how many times it appears, in how many PRs, and two or three example links. Count distinct `pr` values; where the history has none, count distinct `merge` values, and only then commits. A cluster confined to one PR is usually one feature's chain of fixes, not a habit, so weigh it below one that recurs across PRs.
 
 If a cluster stopped recurring after a shared helper or API landed, check whether anything stops new code from reimplementing it locally. An unfenced helper is the next correction waiting to happen; suggest fencing it (see `encode-correction`).
 
@@ -53,6 +55,8 @@ Rank the clusters by:
 - **encodability:** whether a deterministic check could catch it. The control list in `encode-correction` shows the options.
 
 Frequent, costly and checkable goes to the top. Frequent but needing judgment goes in the "still needs review" list.
+
+When the criteria disagree, recurrence across PRs comes first, then cost. A cluster that is only partly checkable can still go under "Encode next" if the partial control is worth having: name what it catches, and list the rest under "still needs review". A cluster whose only control is a behavioural test that already exists ranks below one that has no check yet.
 
 ## Report
 
