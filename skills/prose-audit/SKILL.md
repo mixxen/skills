@@ -2,7 +2,7 @@
 name: prose-audit
 description: Audit the prose that agents read (AGENTS.md, CLAUDE.md, rules files, skills, and the contributor and architecture docs they point to) and remove text that excuses workarounds or turns one small correction into an absolute rule, converting enforceable warnings into checks. Use this when the user asks to clean up, shorten, review, reorganise or deduplicate agent instructions or rules, when instruction files are long, stale, contradictory or full of NEVER and ALWAYS rules, when agents seem confused by their instructions, or for a periodic review of agent guidance. Code comments are out of scope.
 metadata:
-  version: "0.6"
+  version: "0.7"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -41,7 +41,7 @@ Decide which of these each statement is:
 
 ## Make the changes
 
-Edit the files directly, grouped so that each change is easy to review. The files should end up shorter: new text replaces old text, and the total line count goes down. Status lines added to historical records are the exception. Deleted justifications go away entirely; don't move them into code comments or another doc. For over-rotated rules, and for contradictions where the answer depends on the team's intent, propose the change and ask rather than deciding alone: the person who added the rule may know something the history doesn't show.
+Edit the files directly, grouped so that each change is easy to review. The files usually end up shorter, since new text replaces old. A few added lines are fine where they make guidance easier to follow (a rule's scope, owner or exception, or a status line on a historical record), but don't add new rules. Deleted justifications go away entirely; don't move them into code comments or another doc. For over-rotated rules, and for contradictions where the answer depends on the team's intent, propose the change and ask rather than deciding alone: the person who added the rule may know something the history doesn't show.
 
 Don't delete a whole file, even one that would be left empty or holds only duplicates. Other tools or people may load it by path (a `.cursor/rules` file, a skill, a doc linked from elsewhere). Remove the content you're removing, then list the file under "Needs a decision" with a one-line reason to delete it.
 

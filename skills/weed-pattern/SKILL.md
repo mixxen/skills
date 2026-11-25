@@ -2,7 +2,7 @@
 name: weed-pattern
 description: Find and remove existing copies of a banned, deprecated or workaround pattern across a codebase in small reviewable batches, until only deliberate uses remain, so agents stop copying it. Use this when a new lint rule or check has a baseline or suppression list of existing violations, when the user asks to clean up, migrate off, replace or get rid of an old pattern, library, API or workaround everywhere, when agents keep copying outdated code, or after encode-correction reports existing violations. Also use it to delete dead code and stale examples that agents might imitate.
 metadata:
-  version: "0.5"
+  version: "0.6"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -37,9 +37,9 @@ Group occurrences by module or owner so that each batch is easy to review, typic
 
 1. Replace the occurrences.
 2. Delete any comments that justified the old workaround. Once the workaround is gone they are wrong, and they teach the next agent that workarounds are acceptable. Don't replace them with new comments explaining why the workaround is no longer needed; that belongs in the commit message.
-3. Run the tests and the check. If the change affects behaviour, run the app and verify it, using the project's runtime verification skill if it has one. For a swap meant to change nothing, run the old and new code side by side on representative and edge inputs, and list every difference in the commit message: tests rarely cover the edges where two implementations disagree.
-4. Lower the baseline so that the count can't go back up. If the linter has no baseline feature, lower the checked-in list or remove each batch's files from the per-file override list. Update any test that pins the baseline in the same commit.
-5. Make one commit or PR per batch, stating the before and after counts.
+3. Run the tests and the check. If the change affects behaviour, run the app and verify it, using the project's runtime verification skill if it has one. For a swap meant to change nothing, run the old and new code side by side on representative and edge inputs, and list every difference in the commit message or report: tests rarely cover the edges where two implementations disagree.
+4. Lower the baseline so that the count can't go back up. If the linter has no baseline feature, remove the fixed entries from the checked-in list, or each batch's files from the per-file override list. Update any test that pins the baseline in the same change.
+5. If you're committing (the user asked for commits or PRs, or the project's workflow expects them), make one commit or PR per batch, stating the before and after counts. Otherwise leave the changes uncommitted, keep each batch reviewable on its own, and give each batch's counts in the report.
 
 ## 3. Finish when only allowed uses remain
 
@@ -58,7 +58,7 @@ Stop and report instead of forcing the change when:
 ```
 ## Pattern weeded: [name]
 Before: [N] occurrences   After: [M]
-Batches: [commits or PRs, with counts]
+Batches: [commits, PRs or uncommitted batches, with counts]
 Allowed uses kept: [K], recorded in [config file]
 Left in baseline: [each one, with the reason]
 Justification comments and dead code removed: [count or list]

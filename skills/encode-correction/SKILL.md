@@ -2,7 +2,7 @@
 name: encode-correction
 description: Turn a correction into an automatic control (a better API, a fenced API, an import boundary, a lint rule or a test) so agents can't repeat the mistake, instead of adding another line to AGENTS.md or a rules file. Use this whenever someone corrects how code was written, a review comment points out a pattern that keeps recurring, or the user says things like "agents keep doing X", "make sure this never happens again", "add a lint rule for", "ban X" or "lock this down". Also use it when you are about to write a new rule, warning or "don't" note into AGENTS.md, CLAUDE.md, a rules file or a code comment; prefer a check over prose.
 metadata:
-  version: "0.5"
+  version: "0.6"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -64,7 +64,7 @@ Then run the check across the whole repo and note how many existing violations i
 
 ## 5. Block new cases now; clean up later
 
-Turn the check on so it fails for new code, without forcing a repo-wide rewrite in the same change. Use the linter's baseline or suppression feature if it has one. Otherwise, record the violations in a checked-in list (file and count) that a test or CI step compares against, so the count can only go down. Make that comparison fail when the count drops below the list too, with a message saying to remove the fixed entries; otherwise each fix leaves room for a new violation. Turning the rule off per file is weaker: new violations get into exactly those files unnoticed. If you use it anyway, pin each file's count with a test. Where one rule holds several bans (ESLint's `no-restricted-syntax` takes all its selectors in one option), turning it off for a file turns off every ban in it; restate the other selectors in that override instead. Hand the existing violations to the `weed-pattern` skill.
+Turn the check on so it fails for new code, without forcing a repo-wide rewrite in the same change. Use the linter's baseline or suppression feature if it has one, but check what it records. A count per file (ESLint's bulk suppressions store one) lets someone fix one violation and add another in the same file without the check noticing. Where that matters, or where the linter has no such feature, record each allowed finding in a checked-in list, identified by file and the matched source text rather than the line number, which unrelated edits change. A test or CI step compares the current findings with the list: a finding not on the list fails, and so does an entry that no longer matches anything, with a message saying to remove the fixed entries. Prove it: fix one listed finding and add a new one in the same file, and the check must fail. Turning the rule off per file is weaker still: new violations get into exactly those files unnoticed. If you use it anyway, add the same list check as a test. Where one rule holds several bans (ESLint's `no-restricted-syntax` takes all its selectors in one option), turning it off for a file turns off every ban in it; restate the other selectors in that override instead. Hand the existing violations to the `weed-pattern` skill.
 
 Run the check where agents hit it during their normal loop: the pre-commit hook, the project's check command and CI. A nightly job alone is too late. Fast feedback is what makes agents fix the root cause instead of moving on. If the project has no hook or single check command, don't create one as part of this change, since it's new tooling for the whole team; recommend it in the report.
 

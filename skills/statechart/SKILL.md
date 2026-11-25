@@ -2,7 +2,7 @@
 name: statechart
 description: Draw a feature's state machine from the user's point of view, read from the code that was actually written, as a Mermaid state diagram, then compare it with what was asked for and list missing transitions, dead ends and unreachable states. Use this to check whether an agent understood the intent behind a UI flow, when reviewing a feature with several states (forms, uploads, wizards, auth, sync, players, onboarding), when the user asks for a state diagram, statechart or flow of a feature, or alongside screenshots and videos from run-and-verify.
 metadata:
-  version: "0.6"
+  version: "0.7"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -14,7 +14,9 @@ Draw it from the **code**, not from the ticket. A diagram of what was asked for 
 
 ## 1. Find the states the user can see
 
-Read the feature's components, hooks, reducers or stores. A state is something the user can see and tell apart: "Uploading 40%", "Upload failed", "Empty list". Merge internal flags that look the same to the user, and split one variable that shows two different screens.
+Read the feature's components, hooks, reducers or stores. A state is something the user can see and tell apart: "Uploading 40%", "Upload failed", "Empty list". If the feature has no screen (a device, a protocol, a service), the user is whoever calls it or talks to it: an operator console, another device, an API client.
+
+Merge internal flags only when they look the same and respond the same to every event. Two modes that both report "Moving" but handle a stop command or a timeout differently are two states; name them so the difference shows. Split one variable that shows two different screens.
 
 Ignore implementation detail such as memoisation or loading for a fraction of a second that never shows.
 

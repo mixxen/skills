@@ -2,7 +2,7 @@
 name: run-and-verify
 description: Start the app, drive the feature that just changed through the project's own CLI or driver, check it behaves as a user would expect, debug with real developer tools when it doesn't, and leave reviewable evidence (commands, output, screenshots or video). Uses a feature map, a list of the app's features in the user's own words, so "the panel in the left sidebar" points at something concrete. Use this whenever code that changes user-visible behaviour is finished, when the user says verify, check it works, try it, test it in the app, show me, or before opening a PR, even if tests already pass.
 metadata:
-  version: "0.9"
+  version: "0.10"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -66,12 +66,14 @@ When you're checking someone else's change, propose these additions in the repor
 
 ## Report
 
-The heading is the verdict, and people often read nothing else. Use "Verified" only when every check passed. A check that couldn't run hasn't passed: if the ones that ran still cover the main path through a real caller, you may use "Verified" and list the rest under "Not verified" with the reason; if the main path itself couldn't run, use the "Not verified in the running app" form below and say what did run. If any check failed, use "Problems found", even when the main path works; don't narrow the heading to the part that passed ("Verified: the toggle no longer…").
+The heading is the verdict, and people often read nothing else, so it names where the checks ran and what happened. Use "Verified" only when every planned check ran and passed: "Verified in the dev server: …". A check that couldn't run hasn't passed. If the main path ran through a real caller but other checks are still pending, say both in the heading, in the environment's own words: "Host simulation passed; board checks pending: …", and list each pending check under "Not verified" with the reason. If the main path itself couldn't run, use the "Not verified in the running app" form below and say what did run. If any check failed, use "Problems found", even when the main path works; don't narrow the heading to the part that passed ("Verified: the toggle no longer…").
 
 When checks failed, say what's wrong after "Problems found:" ("Problems found: dark mode resets after a reload"). Don't put the user's claim there ("Problems found: dark mode remembers your choice") or the part that worked: someone skimming reads the words after the colon as the result. The first sentence states what fails, then what passed: "The items-left counter goes wrong after a double click or Clear completed; completing one todo now works." Opening with what passed ("Your fix works…") reads as a pass to anyone who stops there.
 
 ```
-## Verified: [change]          (or: ## Problems found: [what fails])
+## Verified in [environment]: [change]
+   (or: ## [Environment] passed; [checks] pending: [change])
+   (or: ## Problems found: [what fails])
 Features: [feature map names]
 Started with: [command]
 Stopped: [what you stopped and how, e.g. "server on port 4317, killed; port closed"]

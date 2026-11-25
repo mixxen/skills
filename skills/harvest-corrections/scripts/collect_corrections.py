@@ -2,8 +2,8 @@
 """Collect recent corrections from a repository as JSON lines.
 
 Sources:
-  review_comment  inline PR review comments (GitHub, via gh)
-  pr_comment      PR conversation comments (GitHub, via gh)
+  review_comment  inline review comments (GitHub via gh, or GitLab via glab)
+  pr_comment      PR or merge request conversation comments (gh or glab)
   revert          commits that revert earlier commits (git)
   rules_change    lines added to agent rules files (git)
   commit_finding  non-merge commits whose message records a review finding or
@@ -16,9 +16,13 @@ when the history has no PR links. "pr" keeps the host's notation: "#45" for a
 GitHub pull request, "group/project!12" for a GitLab merge request, so numbers
 from a repository that moved hosts don't collide.
 
-Run from inside the repository. The GitHub sources need an authenticated gh
-CLI; pass --no-github to collect only the git sources (for GitLab, Bitbucket,
-or offline use). Bot accounts and merge commits are skipped.
+Comments carry "pr" in the same notation, so every source can be counted per PR.
+
+Run from inside the repository. Comments come from GitHub (an authenticated gh
+CLI) or GitLab (an authenticated glab CLI), picked from the origin remote unless
+--comments says which; --comments none collects only the git sources. Each
+comment request stands alone, so one failure doesn't discard the others. Bot
+accounts, GitLab system notes and merge commits are skipped.
 
 Example:
   python collect_corrections.py --since 2026-10-22 --out corrections.jsonl
@@ -77,29 +81,54 @@ def is_bot(login, user_type):
     return user_type == "Bot" or (login or "").endswith("[bot]")
 
 
+def json_values(text):
+    """Parse one or more JSON values printed back to back (paginated API output)."""
+    decoder = json.JSONDecoder()
+    values, index = [], 0
+    while True:
+        while index < len(text) and text[index].isspace():
+            index += 1
+        if index >= len(text):
+            return values
+        value, index = decoder.raw_decode(text, index)
+        values.append(value)
+
+
+def github_pr(url):
+    match = re.search(r"/pulls?/(\d+)", url or "")
+    return f"#{match.group(1)}" if match else None
+
+
 def github_comments(since_iso):
-    """Inline review comments and PR conversation comments since a date."""
+    """Inline review comments and PR conversation comments since a date.
+
+    Each endpoint is fetched on its own: if one fails, the other's comments are kept.
+    """
     items = []
     review_jq = (
         '.[] | {kind: "review_comment", author: .user.login, author_type: .user.type, '
-        "created_at, url: .html_url, path, body} | @json"
+        "created_at, url: .html_url, pr_url: .pull_request_url, path, body} | @json"
     )
     conversation_jq = (
         '.[] | select(.html_url | test("/pull/")) | {kind: "pr_comment", '
         "author: .user.login, author_type: .user.type, created_at, "
-        "url: .html_url, body} | @json"
+        "url: .html_url, pr_url: .html_url, body} | @json"
     )
     for endpoint, jq in (
         ("pulls/comments", review_jq),
         ("issues/comments", conversation_jq),
     ):
-        out = run(
-            [
-                "gh", "api", "--paginate",
-                f"repos/{{owner}}/{{repo}}/{endpoint}?since={since_iso}&per_page=100",
-                "--jq", jq,
-            ]
-        )
+        try:
+            out = run(
+                [
+                    "gh", "api", "--paginate",
+                    f"repos/{{owner}}/{{repo}}/{endpoint}?since={since_iso}&per_page=100",
+                    "--jq", jq,
+                ]
+            )
+        except RuntimeError as error:
+            print(f"Skipping GitHub {endpoint}: {error}", file=sys.stderr)
+            continue
         for line in out.splitlines():
             line = line.strip()
             if not line:
@@ -111,8 +140,91 @@ def github_comments(since_iso):
             if is_bot(item.get("author"), item.get("author_type")):
                 continue
             item.pop("author_type", None)
+            item["pr"] = github_pr(item.pop("pr_url", None))
             items.append(item)
     return items
+
+
+GITLAB_BOT = re.compile(r"(\[bot\]|-bot|_bot(_\w+)?)$")
+
+
+def gitlab_comments(since_iso):
+    """Merge request notes (inline and conversation) since a date, via glab.
+
+    Lists merge requests updated since the date, then fetches each one's discussions.
+    A merge request whose discussions can't be fetched is reported and skipped.
+    """
+    items = []
+    try:
+        out = run(
+            [
+                "glab", "api", "--paginate",
+                f"projects/:id/merge_requests?updated_after={since_iso}&scope=all&per_page=100",
+            ]
+        )
+    except RuntimeError as error:
+        print(f"Skipping GitLab merge requests: {error}", file=sys.stderr)
+        return items
+    for mr in (mr for page in json_values(out) for mr in page):
+        iid = mr.get("iid")
+        pr = (mr.get("references") or {}).get("full") or f"!{iid}"
+        try:
+            out = run(
+                [
+                    "glab", "api", "--paginate",
+                    f"projects/:id/merge_requests/{iid}/discussions?per_page=100",
+                ]
+            )
+        except RuntimeError as error:
+            print(f"Skipping discussions of {pr}: {error}", file=sys.stderr)
+            continue
+        for discussion in (d for page in json_values(out) for d in page):
+            for note in discussion.get("notes") or []:
+                author = note.get("author") or {}
+                login = author.get("username") or ""
+                if note.get("system") or author.get("bot") or GITLAB_BOT.search(login):
+                    continue
+                if (note.get("created_at") or "") < since_iso:
+                    continue
+                inline = note.get("type") == "DiffNote"
+                item = {
+                    "kind": "review_comment" if inline else "pr_comment",
+                    "author": login,
+                    "created_at": note.get("created_at"),
+                    "url": f"{mr.get('web_url')}#note_{note.get('id')}",
+                    "pr": pr,
+                    "body": note.get("body"),
+                }
+                if inline:
+                    position = note.get("position") or {}
+                    item["path"] = position.get("new_path") or position.get("old_path")
+                items.append(item)
+    return items
+
+
+def comment_host(choice):
+    """Which host to fetch comments from: the --comments value, or a guess from origin."""
+    if choice != "auto":
+        return choice
+    try:
+        origin = run(["git", "remote", "get-url", "origin"]).strip()
+    except RuntimeError:
+        return "none"
+    if "github" in origin:
+        return "github"
+    if "gitlab" in origin:
+        return "gitlab"
+    # A self-hosted origin: use whichever CLI is installed.
+    if shutil.which("glab"):
+        return "gitlab"
+    if shutil.which("gh"):
+        return "github"
+    print(
+        "Couldn't tell the review host from origin and found neither gh nor glab: "
+        "skipping comments (pass --comments github, gitlab or none).",
+        file=sys.stderr,
+    )
+    return "none"
 
 
 def pr_number(text):
@@ -249,7 +361,7 @@ def rules_changes(since_iso):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Collect recent review comments, review findings recorded in commit "
+        description="Collect recent review comments (GitHub or GitLab), review findings recorded in commit "
         "messages, reverts and rules-file changes as JSON lines."
     )
     parser.add_argument(
@@ -258,9 +370,15 @@ def main():
     )
     parser.add_argument("--out", help="Output file (default: stdout)")
     parser.add_argument(
+        "--comments",
+        choices=["auto", "github", "gitlab", "none"],
+        default="auto",
+        help="Where to fetch review comments from (default: auto, from the origin remote)",
+    )
+    parser.add_argument(
         "--no-github",
         action="store_true",
-        help="Skip the GitHub comment sources and collect git sources only",
+        help="Same as --comments none (kept for older instructions)",
     )
     parser.add_argument(
         "--commit-grep",
@@ -292,14 +410,14 @@ def main():
 
     items = []
     counts = {}
-    if not args.no_github:
-        if shutil.which("gh") is None:
-            print("gh not found: skipping GitHub comments (use --no-github to silence this).", file=sys.stderr)
-        else:
-            try:
-                items += github_comments(since_iso)
-            except RuntimeError as error:
-                print(f"Skipping GitHub comments: {error}", file=sys.stderr)
+    host = "none" if args.no_github else comment_host(args.comments)
+    cli = {"github": "gh", "gitlab": "glab"}.get(host)
+    if cli and shutil.which(cli) is None:
+        print(f"{cli} not found: skipping {host} comments (use --comments none to silence this).", file=sys.stderr)
+    elif host == "github":
+        items += github_comments(since_iso)
+    elif host == "gitlab":
+        items += gitlab_comments(since_iso)
     git_items = reverts(since_iso)
     if not args.no_commits:
         git_items += commit_findings(since_iso, args.commit_grep or DEFAULT_COMMIT_PATTERNS)

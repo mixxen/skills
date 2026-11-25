@@ -2,7 +2,7 @@
 name: harvest-corrections
 description: Mine recent PR review comments, reverts and changes to agent rules files for corrections that keep recurring, group them, and rank which to turn into automatic checks next, along with a summary of what human review still catches. Use this when the user asks what keeps coming up in code review, what to lint or automate next, why review is a bottleneck, which agent mistakes repeat, or wants a weekly or monthly review of corrections. Hand the top items to encode-correction.
 metadata:
-  version: "0.4"
+  version: "0.5"
   source: "Based on Lauren Tan, All Code Is Slop (Except Mine), AI Engineer Code Summit 2026"
 ---
 
@@ -26,9 +26,9 @@ Default window: the last 30 days, or since the previous harvest report if the us
 python scripts/collect_corrections.py --since 2026-10-22 --out corrections.jsonl
 ```
 
-The review comments need a signed-in `gh` CLI; everything else needs only `git`. It skips bot accounts and merge commits. For other hosts, pass `--no-github` and fetch review comments with that host's CLI or API if you can (for GitLab, `glab api projects/:id/merge_requests/:iid/discussions`). If you can't, say so in the Sources line ("0 review comments: GitLab not reachable") and rely on commit messages.
+Review comments come from GitHub through a signed-in `gh` CLI, or from GitLab (merge request discussions) through a signed-in `glab`, chosen from the origin remote; pass `--comments github`, `gitlab` or `none` to choose. Everything else needs only `git`. It skips bot accounts, GitLab system notes and merge commits. Each comment request stands alone: if one fails, the script keeps the rest and names what it skipped on stderr. For other hosts, pass `--comments none` and fetch review comments with that host's CLI or API if you can. Whatever couldn't be fetched, say so in the Sources line ("0 review comments: GitLab not reachable") and rely on commit messages.
 
-Commit messages are matched against review-style patterns by default (review, regression, corrective, "fails on <sha>" or "red on <sha>"); pass `--commit-grep` (repeatable, extended regex) to use the project's own words, such as its finding IDs. "Regression" also matches commits that only add a regression test to a new feature; read those before counting them. Each commit item also carries `pr` and `merge`: the PR or merge request it was merged in, worked out from the merge commit or a "(#123)" squash subject. `pr` keeps the host's notation (`#45` on GitHub, `group/project!12` on GitLab), so a repository that moved hosts doesn't merge two PRs that share a number.
+Commit messages are matched against review-style patterns by default (review, regression, corrective, "fails on <sha>" or "red on <sha>"); pass `--commit-grep` (repeatable, extended regex) to use the project's own words, such as its finding IDs. "Regression" also matches commits that only add a regression test to a new feature; read those before counting them. Every item carries `pr`: for comments, the PR or merge request they were left on; for commits, the one they were merged in, worked out from the merge commit (also given as `merge`) or a "(#123)" squash subject. `pr` keeps the host's notation (`#45` on GitHub, `group/project!12` on GitLab), so a repository that moved hosts doesn't merge two PRs that share a number.
 
 ## 1. Turn comments into corrections
 
