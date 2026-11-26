@@ -25,7 +25,7 @@ Choose applicable dimensions before grading. Add domain-specific criteria when t
 
 | Dimension | Inspect | What strong evidence looks like |
 |---|---|---|
-| API design and simplicity | Setup, common calls, naming, defaults, ownership, and caller responsibilities. | A realistic caller follows a short, coherent path. The API makes valid use discoverable and common misuse difficult. |
+| API design and complexity | Setup, common calls, naming, defaults, ownership, and caller responsibilities. Look for options, abstractions, and steps that add cost without serving the use case. | The API fits the workflows and constraints. Common calls are clear, and mechanisms for difficult cases earn their cost by preserving guarantees, preventing misuse, or reducing work across callers. |
 | Readability | Source structure, naming, indirection, and whether a maintainer can trace behavior. | A reviewer can follow a meaningful operation and its failure path using local context and documented invariants. |
 | Maintainability | Change locality, extension points, dependency boundaries, and ownership of shared behavior. | A representative fix or extension is localized and its effects are easy to review. |
 | Reusability and composition | Which mechanics consumers share, which policy they supply, and how the library integrates. | When multi-consumer reuse matters, distinct callers use the same core. A policy change for one caller stays local. A single-purpose library fits its declared boundary. |
@@ -34,6 +34,8 @@ Choose applicable dimensions before grading. Add domain-specific criteria when t
 | Diagnostics and operability | What a caller or operator can observe and use to diagnose and recover from a problem. | A realistic fault is distinguishable and attributable with the information available to the intended caller. |
 | Resource and platform fit | Supported platforms and toolchains, runtime assumptions, latency, footprint, and allocation where relevant. | Comparable builds and measurements show fit on the intended target with the relevant workload and features. |
 | Adoption and lifecycle | Getting started, documentation accuracy, compatibility and upgrades, release activity, license, and supply-chain burden. | A caller can integrate a pinned release and follow a credible upgrade path. Maintenance and dependencies suit the project's needs. |
+
+Judge complexity by the work it does for the declared use case. For example, a shared retry and cancellation mechanism can justify extra implementation code when callers need bounded recovery. A plug-in layer for a fixed operation adds overhead if no in-scope caller needs to vary it. Evaluate the whole workflow, including any work consumers must implement themselves.
 
 Assign each finding to its primary dimension. Mention effects on other dimensions when they are independently evidenced. Use downloads, stars, and commits as context for adoption or activity. Evaluate API quality, correctness, and reuse through caller behavior and shared implementation.
 
