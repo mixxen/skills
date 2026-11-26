@@ -15,7 +15,7 @@ Apply these anchors to each dimension and Overall. Calibrate 7.0 against the ord
 | 8.0–8.9 | Strong. The main workflows and relevant edge cases hold up well, with limited weaknesses. |
 | 9.0–9.4 | Excellent. Important workflows are unusually clear or robust, with minor weaknesses. |
 | 9.5–9.9 | Exceptional. Evidence shows a marked benefit over a competent peer, with very small remaining gaps. |
-| **10.0** | **Exceptional even at the top of the scale.** Evidence establishes a standout benefit in representative use, including relevant difficult cases. The reviewed scope has no known material weakness in the dimension being scored. |
+| **10.0** | **The best thing since sliced bread.** Evidence establishes a standout benefit in representative use, including relevant difficult cases. The reviewed scope has no known material weakness in the dimension being scored. |
 
 Use one decimal place. Tenths express review judgment. Treat nearby scores as effectively tied unless a user-relevant and repeatable difference supports a preference. Reserve exceptional scores for demonstrated caller benefits in representative use.
 
